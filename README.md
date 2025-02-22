@@ -1,0 +1,1 @@
+# MPC for dynamic locomotion the MIT cheetah 3
