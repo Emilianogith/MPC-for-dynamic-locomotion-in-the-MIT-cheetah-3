@@ -64,7 +64,7 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
 
         if urdf_file_name == "cheetah":
             initial_configuration = {   'LF_JOINT1': 0.,    'LF_JOINT2': 0.,    'LF_JOINT3': 0.,    \
-                                        'RF_JOINT1': 0.,    'RF_JOINT2': 0.,    'RF_JOINT3': 0.,   \
+                                        'RF_JOINT1': 0.,    'RF_JOINT2': 130.,    'RF_JOINT3': -90.,   \
                                         'LB_JOINT1': 0.,    'LB_JOINT2': 0.,   'LB_JOINT3': 0.,    \
                                         'RB_JOINT1': 0.,    'RB_JOINT2': 0.,  'RB_JOINT3': 0.}#, "fixed": 0.}
 
@@ -86,12 +86,13 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             lb_lower_pos = self.lb_lower.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
             rb_lower_pos = self.rb_lower.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
 
-            feet_center = (lf_lower_pos +  rf_lower_pos + lb_lower_pos + rb_lower_pos)/4.
-
+            #feet_center = (lf_lower_pos +  rf_lower_pos + lb_lower_pos + rb_lower_pos)/4. 
+            # Ochio perche a seconda di come setti initial_config 
+            # li ho printati nella config tutto 0 e usiamo quelli fissati per ogni inital_config
             self.hrp4.setPosition(2, -3.14/4)
-            self.hrp4.setPosition(3, -feet_center[0])
-            self.hrp4.setPosition(4, -feet_center[1])
-            self.hrp4.setPosition(5, -2*feet_center[2])
+            self.hrp4.setPosition(3, -0.11352459)
+            self.hrp4.setPosition(4, -0.09843932)
+            self.hrp4.setPosition(5, -2*-0.1332942308122634)
 
 
 
@@ -313,10 +314,29 @@ if __name__ == "__main__":
     node.setTargetRealTimeFactor(10) # speed up the visualization by 10x
     viewer.addWorldNode(node)
 
-    viewer.setUpViewInWindow(0, 0, 1920, 1080)
-    viewer.setUpViewInWindow(0, 0, 1280, 720)
+    # Show a possible trajectory
+    position =[0.8,0.8,1]
+    for i in range(7):
+        position[1] += 0.1
+        display_marker(ground, 'ground_link', 
+                    position_in_world_coords=position,
+                    color=[255,0,0])
+        
+    # Show where is the origin of the ground
+    display_marker(ground, 'ground_link', 
+                    position_in_world_coords=[0,0,0.5],
+                    color=[0,255,255])#,
+                    #print_bodieds_of_the_object=True)
+
+
+
+    #viewer.setUpViewInWindow(0, 0, 1920, 1080)
+    #viewer.setUpViewInWindow(0, 0, 1280, 720)
     viewer.setUpViewInWindow(0, 0, 640, 480)
     viewer.setCameraHomePosition([5., -1., 1.5],
                                  [1.,  0., 0.5],
                                  [0.,  0., 1. ])
+
+    
+   
     viewer.run()

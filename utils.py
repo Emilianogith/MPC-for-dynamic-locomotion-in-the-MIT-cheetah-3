@@ -1,6 +1,7 @@
 import casadi as ca
 from scipy.spatial.transform import Rotation as R
 import numpy as np
+import dartpy as dart
 
 def rotation_vector_difference(rotvec_a, rotvec_b):
     R_a = R.from_rotvec(rotvec_a)
@@ -90,3 +91,32 @@ class QPSolver:
             print("QP Solver failed:", e)
             x_sol = np.zeros(self.n_vars)
         return x_sol
+
+
+def display_marker(object, body_name, position_in_world_coords,
+                    color, print_bodieds_of_the_object=False):
+    # Print the bodies of the object if needed
+    if print_bodieds_of_the_object:
+        for i in range(object.getNumBodyNodes()):
+            print(object.getBodyNode(i).getName())
+
+    # get the body named 'body_name'
+    body_node = object.getBodyNode(body_name)
+
+    # display the marker on the body as a ball
+    if body_node is None:
+        print("Error: BodyNode not found.")
+    else:
+        sphere = dart.dynamics.SphereShape(0.02)
+        sphere_node = body_node.createShapeNode(sphere)
+
+        if sphere_node is None:
+            print("Error: Failed to create shape node for the sphere.")
+        else:
+            vis = sphere_node.createVisualAspect()
+
+            if vis is None:
+                print("Error: Failed to get visual aspect.")
+            else:
+                vis.setColor(color)
+                sphere_node.setRelativeTranslation(position_in_world_coords)
