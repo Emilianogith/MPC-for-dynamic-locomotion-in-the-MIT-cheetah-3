@@ -37,14 +37,15 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         if urdf_file_name == "hrp4":
             self.lsole = hrp4.getBodyNode('l_sole')
             self.rsole = hrp4.getBodyNode('r_sole')
+            self.torso = hrp4.getBodyNode('torso')
+            self.base  = hrp4.getBodyNode('body')
         if urdf_file_name == "cheetah":
-            self.lf_lower = hrp4.getBodyNode('LF3')
-            self.rf_lower = hrp4.getBodyNode('RF3')
-            self.lb_lower = hrp4.getBodyNode('LB3')
-            self.rb_lower = hrp4.getBodyNode('RB3')
+            self.lf_sole = hrp4.getBodyNode('LF3')
+            self.rf_sole = hrp4.getBodyNode('RF3')
+            self.lb_sole = hrp4.getBodyNode('LB3')
+            self.rb_sole = hrp4.getBodyNode('RB3')
+            self.base  = hrp4.getBodyNode('BODY')
 
-        self.torso = hrp4.getBodyNode('torso')
-        self.base  = hrp4.getBodyNode('body')
 
         for i in range(hrp4.getNumJoints()):
             joint = hrp4.getJoint(i)
@@ -55,18 +56,10 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             elif dim == 1: joint.setActuatorType(dart.dynamics.ActuatorType.FORCE)
 
         # set initial configuration
-        if urdf_file_name == "hrp4":
-            initial_configuration = {'CHEST_P': 0., 'CHEST_Y': 0., 'NECK_P': 0., 'NECK_Y': 0., \
-                                    'R_HIP_Y': 0., 'R_HIP_R': -3., 'R_HIP_P': -25., 'R_KNEE_P': 50., 'R_ANKLE_P': -25., 'R_ANKLE_R':  3., \
-                                    'L_HIP_Y': 0., 'L_HIP_R':  3., 'L_HIP_P': -25., 'L_KNEE_P': 50., 'L_ANKLE_P': -25., 'L_ANKLE_R': -3., \
-                                    'R_SHOULDER_P': 4., 'R_SHOULDER_R': -8., 'R_SHOULDER_Y': 0., 'R_ELBOW_P': -25., \
-                                    'L_SHOULDER_P': 4., 'L_SHOULDER_R':  8., 'L_SHOULDER_Y': 0., 'L_ELBOW_P': -25.}
-
-        if urdf_file_name == "cheetah":
-            initial_configuration = {   'LF_JOINT1': 0.,    'LF_JOINT2': 0.,    'LF_JOINT3': 0.,    \
-                                        'RF_JOINT1': 0.,    'RF_JOINT2': 130.,    'RF_JOINT3': -90.,   \
-                                        'LB_JOINT1': 0.,    'LB_JOINT2': 0.,   'LB_JOINT3': 0.,    \
-                                        'RB_JOINT1': 0.,    'RB_JOINT2': 0.,  'RB_JOINT3': 0.}#, "fixed": 0.}
+        initial_configuration = {   'LF_JOINT1': 0.,    'LF_JOINT2': 0.,    'LF_JOINT3': 0.,    \
+                                        'RF_JOINT1': 0.,    'RF_JOINT2': 0.,    'RF_JOINT3': 0.,   \
+                                        'LB_JOINT1': 0.,    'LB_JOINT2': 0.,    'LB_JOINT3': 0.,    \
+                                        'RB_JOINT1': 0.,    'RB_JOINT2': 0.,    'RB_JOINT3': 0.}#, "fixed": 0.}
 
 
         for joint_name, value in initial_configuration.items():
@@ -81,12 +74,12 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             self.hrp4.setPosition(5, - (lsole_pos[2] + rsole_pos[2]) / 2.)
 
         if urdf_file_name == 'cheetah':
-            lf_lower_pos = self.lf_lower.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-            rf_lower_pos = self.rf_lower.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-            lb_lower_pos = self.lb_lower.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-            rb_lower_pos = self.rb_lower.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+            lf_sole_pos = self.lf_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+            rf_sole_pos = self.rf_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+            lb_sole_pos = self.lb_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+            rb_sole_pos = self.rb_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
 
-            #feet_center = (lf_lower_pos +  rf_lower_pos + lb_lower_pos + rb_lower_pos)/4. 
+            #feet_center = (lf_sole_pos +  rf_sole_pos + lb_sole_pos + rb_sole_pos)/4. 
             # Ochio perche a seconda di come setti initial_config 
             # li ho printati nella config tutto 0 e usiamo quelli fissati per ogni inital_config
             self.hrp4.setPosition(2, -3.14/4)
@@ -102,12 +95,13 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         #self.desired = copy.deepcopy(self.initial)
 
         # selection matrix for redundant dofs
+        '''
         redundant_dofs = [ \
             "NECK_Y", "NECK_P", \
             "R_SHOULDER_P", "R_SHOULDER_R", "R_SHOULDER_Y", "R_ELBOW_P", \
             "L_SHOULDER_P", "L_SHOULDER_R", "L_SHOULDER_Y", "L_ELBOW_P"]
         
-        '''
+        
         # initialize inverse dynamics
         self.id = id.InverseDynamics(self.hrp4, redundant_dofs)
 
@@ -154,15 +148,17 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
                                       block_diag(R, R, R), \
                                       block_diag(P, P, P), \
                                       x)
-	'''
+	    '''
         # initialize logger and plots
         #self.logger = Logger(self.initial)
         #self.logger.initialize_plot(frequency=10)
         
     def customPreStep(self):
+        return
         # create current and desired states
         self.current = self.retrieve_state()
 
+        '''
         # update kalman filter
         u = np.array([self.desired['zmp']['vel'][0], self.desired['zmp']['vel'][1], self.desired['zmp']['vel'][2]])
         self.kf.predict(u)
@@ -207,9 +203,9 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         # set acceleration commands
         for i in range(self.params['dof'] - 6):
             self.hrp4.setCommand(i + 6, commands[i])
-
+        '''
         # log and plot
-        self.logger.log_data(self.current, self.desired)
+        #self.logger.log_data(self.current, self.desired)
         #self.logger.update_plot(self.time)
 
         self.time += 1
@@ -217,25 +213,50 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
     def retrieve_state(self):
         # com and torso pose (orientation and position)
         com_position = self.hrp4.getCOM()
-        torso_orientation = get_rotvec(self.hrp4.getBodyNode('torso').getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
-        base_orientation  = get_rotvec(self.hrp4.getBodyNode('body' ).getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
+        #torso_orientation = get_rotvec(self.hrp4.getBodyNode('torso').getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
+        base_orientation  = get_rotvec(self.hrp4.getBodyNode('BODY' ).getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
 
         # feet poses (orientation and position)
-        l_foot_transform = self.lsole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        l_foot_orientation = get_rotvec(l_foot_transform.rotation())
-        l_foot_position = l_foot_transform.translation()
-        left_foot_pose = np.hstack((l_foot_orientation, l_foot_position))
-        r_foot_transform = self.rsole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        r_foot_orientation = get_rotvec(r_foot_transform.rotation())
-        r_foot_position = r_foot_transform.translation()
-        right_foot_pose = np.hstack((r_foot_orientation, r_foot_position))
+        #l_foot_transform = self.lsole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        #l_foot_orientation = get_rotvec(l_foot_transform.rotation())
+        #l_foot_position = l_foot_transform.translation()
+        #left_foot_pose = np.hstack((l_foot_orientation, l_foot_position))
+        #r_foot_transform = self.rsole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        #r_foot_orientation = get_rotvec(r_foot_transform.rotation())
+        #r_foot_position = r_foot_transform.translation()
+        #right_foot_pose = np.hstack((r_foot_orientation, r_foot_position))
+
+        lf_foot_transform = self.lf_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        lf_foot_orientation = get_rotvec(lf_foot_transform.rotation())
+        lf_foot_position = lf_foot_transform.translation()
+        left_front_foot_pose = np.hstack((lf_foot_orientation, lf_foot_position))
+
+        rf_foot_transform = self.rf_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        rf_foot_orientation = get_rotvec(rf_foot_transform.rotation())
+        rf_foot_position = rf_foot_transform.translation()
+        right_front_foot_pose = np.hstack((rf_foot_orientation, rf_foot_position))
+
+        lb_foot_transform = self.lb_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        lb_foot_orientation = get_rotvec(lb_foot_transform.rotation())
+        lb_foot_position = lb_foot_transform.translation()
+        left_back_foot_pose = np.hstack((lb_foot_orientation, lb_foot_position))
+
+        rb_foot_transform = self.rb_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        rb_foot_orientation = get_rotvec(rb_foot_transform.rotation())
+        rb_foot_position = rb_foot_transform.translation()
+        right_back_foot_pose = np.hstack((rb_foot_orientation, rb_foot_position))
 
         # velocities
         com_velocity = self.hrp4.getCOMLinearVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        torso_angular_velocity = self.hrp4.getBodyNode('torso').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        base_angular_velocity = self.hrp4.getBodyNode('body').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        l_foot_spatial_velocity = self.lsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
-        r_foot_spatial_velocity = self.rsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        #torso_angular_velocity = self.hrp4.getBodyNode('torso').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        base_angular_velocity = self.hrp4.getBodyNode('BODY').getAngularVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        #l_foot_spatial_velocity = self.lsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        #r_foot_spatial_velocity = self.rsole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        lf_foot_spatial_velocity = self.lf_sole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        rf_foot_spatial_velocity = self.rf_sole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        lb_foot_spatial_velocity = self.lb_sole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+        rb_foot_spatial_velocity = self.rb_sole.getSpatialVelocity(relativeTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World())
+
 
         # compute total contact force
         force = np.zeros(3)
@@ -254,25 +275,38 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
             zmp = np.array([0., 0., 0.]) # FIXME: this should return previous measurement
         else:
             # sometimes we get contact points that dont make sense, so we clip the ZMP close to the robot
-            midpoint = (l_foot_position + l_foot_position) / 2.
+            #midpoint = (l_foot_position + l_foot_position) / 2.
+            midpoint = (lf_foot_position + rf_foot_position + lb_foot_position + rb_foot_position) / 4.
             zmp[0] = np.clip(zmp[0], midpoint[0] - 0.3, midpoint[0] + 0.3)
             zmp[1] = np.clip(zmp[1], midpoint[1] - 0.3, midpoint[1] + 0.3)
             zmp[2] = np.clip(zmp[2], midpoint[2] - 0.3, midpoint[2] + 0.3)
 
         # create state dict
         return {
-            'lfoot': {'pos': left_foot_pose,
-                      'vel': l_foot_spatial_velocity,
-                      'acc': np.zeros(6)},
-            'rfoot': {'pos': right_foot_pose,
-                      'vel': r_foot_spatial_velocity,
-                      'acc': np.zeros(6)},
+            #'lfoot': {'pos': left_foot_pose,
+            #          'vel': l_foot_spatial_velocity,
+            #          'acc': np.zeros(6)},
+            #'rfoot': {'pos': right_foot_pose,
+            #          'vel': r_foot_spatial_velocity,
+            #          'acc': np.zeros(6)},
+            'lf_foot': {'pos': left_front_foot_pose, 
+                        'vel': lf_foot_spatial_velocity, 
+                        'acc': np.zeros(6)},
+            'lb_foot': {'pos': left_back_foot_pose, 
+                        'vel': lb_foot_spatial_velocity, 
+                        'acc': np.zeros(6)},
+            'rf_foot': {'pos': right_front_foot_pose, 
+                        'vel': rf_foot_spatial_velocity, 
+                        'acc': np.zeros(6)},
+            'rb_foot': {'pos': right_back_foot_pose, 
+                        'vel': rb_foot_spatial_velocity, 
+                        'acc': np.zeros(6)},
             'com'  : {'pos': com_position,
                       'vel': com_velocity,
                       'acc': np.zeros(3)},
-            'torso': {'pos': torso_orientation,
-                      'vel': torso_angular_velocity,
-                      'acc': np.zeros(3)},
+            #'torso': {'pos': torso_orientation,
+            #          'vel': torso_angular_velocity,
+            #          'acc': np.zeros(3)},
             'base' : {'pos': base_orientation,
                       'vel': base_angular_velocity,
                       'acc': np.zeros(3)},
