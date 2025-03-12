@@ -8,16 +8,14 @@ class FootstepPlanner:
         default_ds_duration = params['ds_duration']
 
         unicycle_pos   = (lb_foot + rb_foot) / 2.
-        print(f"intial pos {unicycle_pos}")
         unicycle_theta = initial_theta
 
         # lb, rb, lf, rf
         support_foot = [0., 1., 1., 0.] if params['first_swing'] == 'rfoot' else [1., 0., 0., 1.]
-        print(f"Initial support foot: {support_foot}")
-
         self.plan = []
 
-        for j in range(10):
+        total_steps = 10
+        for j in range(total_steps):
             # set step duration
             ss_duration = default_ss_duration
             ds_duration = default_ds_duration
@@ -37,52 +35,50 @@ class FootstepPlanner:
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
                                   [np.sin(unicycle_theta),   np.cos(unicycle_theta)]])
                     
-                    #unicycle_pos[:2] += R @ vref[:2] * params['world_time_step'] # not use R for numerical approximation error
-                    unicycle_pos[:2] += vref[:2] * params['world_time_step']
+                    unicycle_pos[:2] += R @ vref[:2] * params['world_time_step'] # not use R for numerical approximation error
+                    #unicycle_pos[:2] += vref[:2] * params['world_time_step']
                     
-                    
-            
             # compute step position
-            displacement_back = 0.0 if support_foot == 'lfoot' else - 0.0
-            displ_x_back = - np.sin(unicycle_theta) * displacement_back
-            displ_y_back =   np.cos(unicycle_theta) * displacement_back
-
             torso_displacement = 0.6
-            displacement_front = -0.0 if support_foot == 'lfoot' else 0.0
-            displ_x_front = - np.sin(unicycle_theta) * displacement_front
-            displ_y_front =   np.cos(unicycle_theta) * displacement_front
-            
-            leg_displacement = (lb_foot[1] + rb_foot[1]) / 2.
-            leg_displacement = leg_displacement[0]
+            leg_displacement_y = (lb_foot[1] + rb_foot[1]) / 2.
+            leg_displacement_y = leg_displacement_y[0] 
+            leg_displacement_x  = 0.1  # length of the step
 
-            print("----------------------------")
-            print(unicycle_pos[0, 0])
-            print(displacement_back)
-            print(support_foot)
-            print("----------------------------")
+            if j == 0:
+                leg_sgn = [0.0, 0.0, 0.0, 0.0]  # case 1: do not move
+            elif j == total_steps-1:
+                leg_sgn = [ -1.0, -1.0, -1.0, -1.0] # case 3: end of the walk, stop
+            elif j > 1:
+                leg_sgn = [ -1.0 if x==0 else 1.0 for x in support_foot] # case 3: compute the offest respect to hip
+            else:
+                leg_sgn = support_foot # case 2: avoid put feed backward direction
 
             pos = {
                     "lb": [
-                        unicycle_pos[0, 0] + displacement_back * support_foot[0],  
-                        unicycle_pos[1, 0] - leg_displacement
+                        unicycle_pos[0, 0] + leg_displacement_x *leg_sgn[0],
+                        unicycle_pos[1, 0] - leg_displacement_y
                     ],
                     
                     "rb": [
-                        unicycle_pos[0, 0] + displacement_back * support_foot[1], 
-                        unicycle_pos[1, 0] + leg_displacement
+                        unicycle_pos[0, 0] + leg_displacement_x *leg_sgn[1], 
+                        unicycle_pos[1, 0] + leg_displacement_y
                     ],
                     
                     "lf": [
-                        unicycle_pos[0, 0] + displacement_back * support_foot[2] + torso_displacement, 
-                        unicycle_pos[1, 0] - leg_displacement
+                        unicycle_pos[0, 0] + torso_displacement + leg_displacement_x *leg_sgn[2] , 
+                        unicycle_pos[1, 0] - leg_displacement_y
                     ],
 
                     "rf": [
-                        unicycle_pos[0, 0]  + displacement_back * support_foot[3] + torso_displacement, 
-                        unicycle_pos[1, 0]  + leg_displacement
+                        unicycle_pos[0, 0]  + torso_displacement + leg_displacement_x *leg_sgn[3] , 
+                        unicycle_pos[1, 0]  + leg_displacement_y
+                    ],
+                    "hip":[
+                        unicycle_pos[0, 0], 
+                        unicycle_pos[1, 0],  
                     ],
 
-                    "ang": unicycle_theta  # Valore Z separato per chiarezza
+                    "ang": unicycle_theta  
                 }
             
             ang = np.array((0., 0., unicycle_theta))
@@ -97,7 +93,8 @@ class FootstepPlanner:
                 })
             
             # switch support foot
-            support_foot = [1., 0., 0., 1.] if support_foot == [0., 1., 1., 0.]  else [0., 1., 1., 0.]
+            if j > 0:
+                support_foot = [1., 0., 0., 1.] if support_foot == [0., 1., 1., 0.]  else [0., 1., 1., 0.]
 
         x_lb_foot = [step['pos']["lb"][0] for step in self.plan ]
         y_lb_foot = [step['pos']["lb"][1] for step in self.plan ]
@@ -111,35 +108,35 @@ class FootstepPlanner:
         x_rf_foot = [step['pos']["rf"][0] for step in self.plan ]
         y_rf_foot = [step['pos']["rf"][1] for step in self.plan ]
 
-        print("Coordinate X ( commented plt.show() per comodita )")
-        print("\tDEBUG: sx-dx side non dovrebbero essere uguali")
-        print("\tDEBUG: i primi due step sono uguali, perchè?")
-        print("\tTEST: usare vref più piccola di 0.5 e.g. 0.1, 0.5 è per debug piu semplice")
-        print("x_lb_foot:", [round(x, 2) for x in x_lb_foot])
-        print("x_rb_foot:", [round(x, 2) for x in x_rb_foot])
-        print("x_lf_foot:", [round(x, 2) for x in x_lf_foot])
-        print("x_rf_foot:", [round(x, 2) for x in x_rf_foot])
+        x_hip = [step['pos']["hip"][0] for step in self.plan ]
+        y_hip = [step['pos']["hip"][1] for step in self.plan ]
 
+        #print("x_lb_foot:\t", [round(x, 2) for x in x_lb_foot])
+        #print("x_rb_foot:\t", [round(x, 2) for x in x_rb_foot])
+        #print("x_lf_foot:\t", [round(x, 2) for x in x_lf_foot])
+        #print("x_rf_foot:\t", [round(x, 2) for x in x_rf_foot])
+        #print("x_hip:\t\t", [round(x, 2) for x in x_hip])
 
 
         plt.figure(figsize=(8, 6))  
 
-        for i in range(len(x_lb_foot)):
-            plt.plot(x_lb_foot[i], y_lb_foot[i], 'bo', label='LB Foot' if i == 0 else "")
-            plt.text(x_lb_foot[i], y_lb_foot[i], str(i), fontsize=9, verticalalignment='bottom', horizontalalignment='right')
-
-        for i in range(len(x_rb_foot)):
+        for i in range(len(x_hip)):
+            v_al = 'bottom' if i%2==0 else 'top'
+            plt.plot(x_hip[i], y_hip[i], 'go', label='hip' if i == 0 else "")
+            plt.text(x_hip[i], y_hip[i], str(i), fontsize=12, verticalalignment=v_al, horizontalalignment='right')
+ 
             plt.plot(x_rb_foot[i], y_rb_foot[i], 'ro', label='RB Foot' if i == 0 else "")
-            plt.text(x_rb_foot[i], y_rb_foot[i], str(i), fontsize=9, verticalalignment='bottom', horizontalalignment='right')
+            plt.text(x_rb_foot[i], y_rb_foot[i], str(i), fontsize=12, verticalalignment=v_al, horizontalalignment='right')
 
-        for i in range(len(x_lf_foot)):
-            plt.plot(x_lf_foot[i], y_lf_foot[i], 'go', label='LF Foot' if i == 0 else "")
-            plt.text(x_lf_foot[i], y_lf_foot[i], str(i), fontsize=9, verticalalignment='bottom', horizontalalignment='right')
+            plt.plot(x_lb_foot[i], y_lb_foot[i], 'bo', label='LB Foot' if i == 0 else "")
+            plt.text(x_lb_foot[i], y_lb_foot[i], str(i), fontsize=12, verticalalignment=v_al, horizontalalignment='right')
 
-        for i in range(len(x_rf_foot)):
-            plt.plot(x_rf_foot[i], y_rf_foot[i], 'mo', label='RF Foot' if i == 0 else "")
-            plt.text(x_rf_foot[i], y_rf_foot[i], str(i), fontsize=9, verticalalignment='bottom', horizontalalignment='right')
+            #plt.plot(x_lf_foot[i], y_lf_foot[i], 'go', label='LF Foot' if i == 0 else "")
+            #plt.text(x_lf_foot[i], y_lf_foot[i], str(i), fontsize=9, verticalalignment=v_al, horizontalalignment='right')
 
+            #plt.plot(x_rf_foot[i], y_rf_foot[i], 'mo', label='RF Foot' if i == 0 else "")
+            #plt.text(x_rf_foot[i], y_rf_foot[i], str(i), fontsize=9, verticalalignment=v_al, horizontalalignment='right')
+        
         # Impostazioni del grafico
         plt.xlabel("X Position (m)")
         plt.ylabel("Y Position (m)")
@@ -190,16 +187,16 @@ import numpy as np
 lb_foot = np.array([0.0, 0.0, 0.0])
 lb_foot.shape = (3,1)  
 
-rb_foot = np.array([0.0, 0.256, 0.0])
+rb_foot = np.array([0.0, -0.256, 0.0])
 rb_foot.shape = (3,1)
 
 lf_foot = np.array([0.6, 0.0, 0.0])
 lf_foot.shape = (3,1)
 
-rf_foot = np.array([0.6, 0.256, 0.0])
+rf_foot = np.array([0.6, -0.256, 0.0])
 rf_foot.shape = (3,1)
 
-v_com = np.array([0.5, 0.0, 0.0])
+v_com = np.array([0.2, 0.0, 0.0])
 v_com.shape = (3,1)
 
 initial_theta = 0
