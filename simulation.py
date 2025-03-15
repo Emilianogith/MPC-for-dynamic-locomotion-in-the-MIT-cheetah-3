@@ -208,6 +208,40 @@ class Hrp4Controller(dart.gui.osg.RealTimeWorldNode):
         #self.logger.log_data(self.current, self.desired)
         #self.logger.update_plot(self.time)
 
+        #-----------------------(Not simulated)
+        #Jacobian computation and command retrive
+        J = {'lf_foot' : self.robot.getLinearJacobian(lf_foot,         inCoordinatesOf=dart.dynamics.Frame.World())[:, 9:11],
+             'rf_foot' : self.robot.getLinearJacobian(rf_foot,         inCoordinatesOf=dart.dynamics.Frame.World())[:, 15:17],
+             'lb_foot'   : self.robot.getLinearJacobian(lb_foot,       inCoordinatesOf=dart.dynamics.Frame.World())[:, 6:8],
+             'rb_foot' : self.robot.getLinearJacobian(rb_foot,        inCoordinatesOf=dart.dynamics.Frame.World())[:, 12:14],
+             }
+        #Test value for controls
+        f = {'lf_foot' : np.array(0, 0, 5),
+             'rf_foot' : np.array(0, 0, 5),
+             'lb_foot' : np.array(0, 0, 5),
+             'rb_foot' : np.array(0, 0, 5),
+            }
+        tau = { 'lf_foot' : np.array(0, 0, 0),
+                'rf_foot' : np.array(0, 0, 0),
+                'lb_foot' : np.array(0, 0, 0),
+                'rb_foot' : np.array(0, 0, 0),
+              }
+        joint_name = {  'lf_foot' : ['LF_JOINT1',    'LF_JOINT2',    'LF_JOINT3'],    
+                        'rf_foot' : ['RF_JOINT1',    'RF_JOINT2',    'RF_JOINT3'],   
+                        'lb_foot' : ['LB_JOINT1',    'LB_JOINT2',    'LB_JOINT3'],    
+                        'rb_foot' : ['RB_JOINT1',    'RB_JOINT2',    'RB_JOINT3'],
+                        }
+        tasks = ['lf_foot', 'rf_foot', 'lb_foot', 'rb_foot']
+        for task in tasks:
+            tau_curr = J[task].T * f[task]
+            tau[task] = tau_curr
+        #actual commands
+        for task in joint_name:
+            self.hrp4.setCommand(hrp4.getDof(joint_name[task][0]).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
+            self.hrp4.setCommand(hrp4.getDof(joint_name[task][1]).getIndexInSkeleton(), tau[task][1])
+            self.hrp4.setCommand(hrp4.getDof(joint_name[task][2]).getIndexInSkeleton(), tau[task][2])
+        #-------------------------------------------
+
         self.time += 1
 
     def retrieve_state(self):
