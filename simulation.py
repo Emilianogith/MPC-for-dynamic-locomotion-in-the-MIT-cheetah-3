@@ -382,25 +382,50 @@ if __name__ == "__main__":
     node.setTargetRealTimeFactor(10) # speed up the visualization by 10x
     viewer.addWorldNode(node)
 
-    # Show a possible trajectory
-    position =[0.8,0.8,1]
-    for i in range(7):
-        position[1] += 0.1
-        display_marker(ground, 'ground_link', 
-                    position_in_world_coords=position,
-                    color=[255,0,0])
+    # # Show a possible trajectory
+    # position =[0.8,0.8,1]
+    # for i in range(7):
+    #     position[1] += 0.1
+    #     display_marker(ground, 'ground_link', 
+    #                 position_in_world_coords=position,
+    #                 color=[255,0,0])
         
-    # Show where is the origin of the ground
-    display_marker(ground, 'ground_link', 
-                    position_in_world_coords=[0,0,0.5],
-                    color=[0,255,255])#,
-                    #print_bodieds_of_the_object=True)
+    # # Show where is the origin of the ground
+    # display_marker(ground, 'ground_link', 
+    #                 position_in_world_coords=[0,0,0.5],
+    #                 color=[0,255,255])#,
+    #                 #print_bodieds_of_the_object=True)
+
+    body_node = hrp4.getBodyNode('RF3')
+    rotation_matrix = body_node.getTransform().rotation() #da world a rf3
+    displacement = rotation_matrix @ np.array([0, 0, 0])
+    displacement_x = rotation_matrix @ np.array([0.1, 0, 0])
+    displacement_y = rotation_matrix @ np.array([0, 0.1, 0])
+    displacement_z = rotation_matrix @ np.array([0, 0, 0.1])
+
+    # display_marker(hrp4, 'RF3', 
+    #                 position_in_world_coords=displacement,
+    #                 color=[255,0,255])#,
+    #                 #print_bodieds_of_the_object=True)  
+    display_marker(hrp4, 'RF3', 
+                    position_in_world_coords=[0,0.193,-0.117],
+                    color=[0,0,255])#,   
+    display_marker(hrp4, 'LF3', 
+                    position_in_world_coords=[-0.003,0.185,-0.128],
+                    color=[0,0,255])#, 
+    display_marker(hrp4, 'LB3', 
+                    position_in_world_coords=[-0.003,0.20,-0.105],
+                    color=[0,0,255])#,
+    display_marker(hrp4, 'RB3', 
+                    position_in_world_coords=[0,0.193,-0.117],
+                    color=[0,0,255])#,
+
 
 
 
     #viewer.setUpViewInWindow(0, 0, 1920, 1080)
-    #viewer.setUpViewInWindow(0, 0, 1280, 720)
-    viewer.setUpViewInWindow(0, 0, 640, 480)
+    viewer.setUpViewInWindow(0, 0, 1280, 720)
+    #viewer.setUpViewInWindow(0, 0, 640, 480)
     viewer.setCameraHomePosition([5., -1., 1.5],
                                  [1.,  0., 0.5],
                                  [0.,  0., 1. ])

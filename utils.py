@@ -107,7 +107,7 @@ def display_marker(object, body_name, position_in_world_coords,
     if body_node is None:
         print("Error: BodyNode not found.")
     else:
-        sphere = dart.dynamics.SphereShape(0.02)
+        sphere = dart.dynamics.SphereShape(0.01)
         sphere_node = body_node.createShapeNode(sphere)
 
         if sphere_node is None:
