@@ -25,10 +25,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
 
 
-        self.lf_sole = lite3.getBodyNode('FL_FOOT')
-        self.rf_sole = lite3.getBodyNode('FR_FOOT')
-        self.lb_sole = lite3.getBodyNode('HL_FOOT')
-        self.rb_sole = lite3.getBodyNode('HR_FOOT')
+        self.fl_sole = lite3.getBodyNode('FL_FOOT')
+        self.fr_sole = lite3.getBodyNode('FR_FOOT')
+        self.hl_sole = lite3.getBodyNode('HL_FOOT')
+        self.hr_sole = lite3.getBodyNode('HR_FOOT')
         self.base  = lite3.getBodyNode('TORSO')
 
 
@@ -51,10 +51,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             self.lite3.setPosition(self.lite3.getDof(joint_name).getIndexInSkeleton(), value * np.pi / 180.)
         
 
-        lf_sole_pos = self.lf_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        rf_sole_pos = self.rf_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        lb_sole_pos = self.lb_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        rb_sole_pos = self.rb_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        fl_sole_pos = self.fl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        fr_sole_pos = self.fr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        hl_sole_pos = self.hl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        hr_sole_pos = self.hr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
         #feet_center = (lf_sole_pos +  rf_sole_pos + lb_sole_pos + rb_sole_pos)/4. 
         # Ochio perche a seconda di come setti initial_config 
         # # li ho printati nella config tutto 0 e usiamo quelli fissati per ogni inital_config
@@ -62,5 +62,46 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         # self.lite3.setPosition(3, -0.11352459)
         # self.lite3.setPosition(4, -0.09843932)
         self.lite3.setPosition(5, 0.5)
+
+
+    def CustomPreStep(self):
+        J = {'FL_FOOT' : self.lite3.getLinearJacobian(self.fl_sole,         inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
+             'FR_FOOT' : self.lite3.getLinearJacobian(self.fr_sole,         inCoordinatesOf=dart.dynamics.Frame.World())[:,9:12],
+             'HL_FOOT'   : self.lite3.getLinearJacobian(self.hl_sole,       inCoordinatesOf=dart.dynamics.Frame.World())[:,12:15],
+             'HR_FOOT' : self.lite3.getLinearJacobian(self.hr_sole,        inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
+             }
+        print(J)
+
+        #Test value for controls
+        f = {'FL_FOOT' : [0, 0, 30],
+             'FR_FOOT' : [0, 0, 30],
+             'HL_FOOT' : [0, 0, 30],
+             'HR_FOOT' : [0, 0, 30],
+            }
+        print('cc')
+        tau = { 'FL_FOOT' : [0, 0, 0],
+                'FR_FOOT' : [0, 0, 0],
+                'HL_FOOT' : [0, 0, 0],
+                'HR_FOOT' : [0, 0, 0],
+              }
+        joint_name = {  'FL_FOOT' : ['FL_HipX',    'FL_HipY',     'FL_Knee'],    
+                        'FR_FOOT' : ['FR_HipX',    'FR_HipY',     'FR_Knee'],   
+                        'HL_FOOT' : ['HL_HipX',    'HL_HipY',     'HL_Knee'],    
+                        'HR_FOOT' : ['HR_HipX',    'HR_HipY',     'HR_Knee'],
+                        }
+        tasks = ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
+        for task in tasks:
+            tau_curr = J[task].T @ f[task]
+            tau[task] = tau_curr
+        #actual commands
+        i = 0
+        print(tau)
+        for task in joint_name:
+            if i in [1,2,3,5,6,7,9,10,11,13,14,15]:
+                self.lite3.setCommand(self.lite3.getDof(i).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
+                self.lite3.setCommand(self.lite3.getDof(i).getIndexInSkeleton(), tau[task][1])
+                self.lite3.setCommand(self.lite3.getDof(i).getIndexInSkeleton(), tau[task][2])
+            i+=1
+        self.time += 1    
 
 
