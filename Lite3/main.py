@@ -18,11 +18,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'step_height': 0.02,
             'ss_duration': 70,
             'ds_duration': 30,
-            'world_time_step': world.getTimeStep(),
+            'world_time_step': world.getTimeStep(), # 0.01
             'first_swing': 'rfoot',
             'µ': 0.5,
             'N': 100,
-            'dof': self.lite3.getNumDofs(),
+            'dof': self.lite3.getNumDofs(), # 18
         }
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
 
@@ -52,7 +52,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         for joint_name, value in initial_configuration.items():
             self.lite3.setPosition(self.lite3.getDof(joint_name).getIndexInSkeleton(), value * np.pi / 180.)
         
-        print('totti2')
+        #print('totti2')
         fl_sole_pos = self.fl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
         fr_sole_pos = self.fr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
         hl_sole_pos = self.hl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
@@ -63,20 +63,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         # self.lite3.setPosition(2, -3.14/4)
         # self.lite3.setPosition(3, -0.11352459)
         # self.lite3.setPosition(4, -0.09843932)
-        self.lite3.setPosition(5, 0.5)
-
+        self.lite3.setPosition(5, 0.43)
+        self.it_f = 0
 
     def customPreStep(self):
-        J = {'FL_FOOT' : lite3.getLinearJacobian(self.fl_sole,         inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
-             'FR_FOOT' : lite3.getLinearJacobian(self.fr_sole,         inCoordinatesOf=dart.dynamics.Frame.World())[:,9:12],
-             'HL_FOOT'   : lite3.getLinearJacobian(self.hl_sole,       inCoordinatesOf=dart.dynamics.Frame.World())[:,12:15],
-             'HR_FOOT' : lite3.getLinearJacobian(self.hr_sole,        inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
+        
+        J = {'FL_FOOT' : lite3.getLinearJacobian(self.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
+             'FR_FOOT' : lite3.getLinearJacobian(self.fr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,9:12],
+             'HL_FOOT' : lite3.getLinearJacobian(self.hl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,12:15],
+             'HR_FOOT' : lite3.getLinearJacobian(self.hr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
              }
         #Test value for controls
-        f = {'FL_FOOT' : [0.33, 0, 0.33],
-             'FR_FOOT' : [0, 0, 0.33],
-             'HL_FOOT' : [0, 0.33, 0.33],
-             'HR_FOOT' : [0.33, 0.33, 0.33],
+        f = {'FL_FOOT' : [0.0, 0.0, -20.0],
+             'FR_FOOT' : [0.0, 0.0, -20.0],
+             'HL_FOOT' : [0.0, 0.0, -20.0],
+             'HR_FOOT' : [0.0, 0.0, -20.0],
             }
         tau = { 'FL_FOOT' : [0, 0, 0],
                 'FR_FOOT' : [0, 0, 0],
@@ -89,32 +90,53 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
                         'HR_FOOT' : ['HR_HipX',    'HR_HipY',     'HR_Knee'],
                         }
         tasks = ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
-        # for task in tasks:
-        #     tau_curr = J[task].T @ f[task]
-        #     tau[task] = tau_curr
+        
+        for task in tasks:
+            tau_curr = J[task].T @ f[task]
+            tau[task] = tau_curr
+
+        force = np.zeros(3)
+        if self.it_f <= -20:
+            #print(f"num collision: {len( world.getLastCollisionResult().getContacts())} ")
+            for contact in world.getLastCollisionResult().getContacts():
+                force += contact.force
+                #print(contact.force)
+
+            print(f"Total force: {force}")
+
+            print("-----------------------")
+
+        self.it_f += 1
+
         # #actual commands
-        # #print(lite3.getDof(joint_name.get(task)[0]).getIndexInSkeleton())
-        # #print(tau)
-        # for task in joint_name:
-        #     lite3.setCommand(lite3.getDof(joint_name.get(task)[0]).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
-        #     lite3.setCommand(lite3.getDof(joint_name.get(task)[1]).getIndexInSkeleton(), tau[task][1])
-        #     lite3.setCommand(lite3.getDof(joint_name.get(task)[2]).getIndexInSkeleton(), tau[task][2])
+        #print(lite3.getDof(joint_name.get(task)[0]).getIndexInSkeleton())
+        #print(tau)
+        #print(J)
+        #print("tott3")
+        
+        for task in joint_name:
+            lite3.setCommand(lite3.getDof(joint_name.get(task)[0]).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
+            lite3.setCommand(lite3.getDof(joint_name.get(task)[1]).getIndexInSkeleton(), tau[task][1])
+            lite3.setCommand(lite3.getDof(joint_name.get(task)[2]).getIndexInSkeleton(), tau[task][2])
+        return
         # # #-------------------------------------------
-        # v_ref = [0,-0.00,0.2]
-        # q_des = np.linalg.pinv(J['FR_FOOT']) @ v_ref
-        # i = 0
-        # for elem in joint_name['FR_FOOT']:
-        #     lite3.setVelocity(lite3.getDof(elem).getIndexInSkeleton(), q_des[i])
-        #     i+=1
+        v_ref = [0.1,-0.00,0.0]
+        q_des = np.linalg.pinv(J['FR_FOOT']) @ v_ref
+        i = 0
+        for elem in joint_name['FR_FOOT']:
+            #lite3.setVelocity(lite3.getDof(elem).getIndexInSkeleton(), q_des[i])
+            i+=1
+
+
         collision_result = self.world.getLastCollisionResult()
         foot_names = ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']  # Front-right, front-left, rear-right, rear-left
 
         # Dictionary to store contact forces for each foot
         foot_contact_forces = {foot: None for foot in foot_names}
         #print(collision_result.getContacts())
-        for contact in collision_result.getContacts():
+        #for contact in collision_result.getContacts():
             #print(contact.force)
-            print(contact.getBodyNode1())
+        #    print(contact.getBodyNode1())
         # # Iterate over contact points
         # for contact in collision_result.getContact():
         #     body_node = contact.bodyNode  # Body involved in contact
