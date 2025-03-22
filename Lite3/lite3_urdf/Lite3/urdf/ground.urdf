@@ -12,7 +12,7 @@
             <material name="green"><color rgba="0.7 0.7 0.7 1"/></material>
             <geometry>
                 <box size="10 10 1" />
-                <color rgba="0.99 0.99 0.7 1"/> 
+                <color rgba="0.99 0.99 0.7 0.3"/> 
             </geometry>
         </visual> 
         <collision>
