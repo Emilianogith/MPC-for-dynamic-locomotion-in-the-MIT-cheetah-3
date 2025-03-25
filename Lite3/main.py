@@ -20,7 +20,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'ss_duration': 70,
             'ds_duration': 30,
             'world_time_step': world.getTimeStep(), # 0.01
-            'first_swing': 'rfoot',
+            'first_swing': np.array([0,1,1,0]),
             'µ': 0.5,
             'N': 100,
             'dof': self.lite3.getNumDofs(), # 18
@@ -210,69 +210,66 @@ if __name__ == "__main__":
         # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.6],
         #             color= [0, 0, 255], print_bodieds_of_the_object=False)
         
-        lb_foot = node.hl_sole_pos
-        lb_foot.shape = (3,1)  
+        hl_foot = node.hl_sole_pos
+        hl_foot.shape = (3,1)  
 
-        rb_foot = node.hr_sole_pos
-        rb_foot.shape = (3,1)
+        hr_foot = node.hr_sole_pos
+        hr_foot.shape = (3,1)
 
-        lf_foot = node.fl_sole_pos
-        lf_foot.shape = (3,1)
+        fl_foot = node.fl_sole_pos
+        fl_foot.shape = (3,1)
 
-        rf_foot = node.fr_sole_pos
-        rf_foot.shape = (3,1)
+        fr_foot = node.fr_sole_pos
+        fr_foot.shape = (3,1)
 
-        v_com = np.array([0.2, 0.0, 0.0])
+        v_com = np.array([0.15, 0.0, 0.0])
         v_com.shape = (3,1)
-
         initial_theta = 0
-        print(v_com)
-        print(lb_foot)
-        reference = [(0.1, 0., 0.2)] * 5 + [(0.1, 0., -0.1)] * 10 + [(0.1, 0., 0.)] * 10
+
         params = {
                 'g': 9.81,
-                'h': 0.72,
-                'foot_size': 0.1,
+                'h': 0.72, #com height
+                'foot_size': 0.1, #ce serve?
                 'step_height': 0.02,
                 'ss_duration': 70,
                 'ds_duration': 30,
-                'world_time_step': 0.01,
-                'first_swing': 'lfoot',
+                'world_time_step': world.getTimeStep(),
+                'first_swing': [1,0,0,1], #[0,1,1,0] 0 = piede che swinga (?)
                 'µ': 0.5,
                 'N': 100,
-                'dof': 30,
+                'dof': lite3.getNumDofs(),
             }
 
         footstep_planner = FootstepPlanner(
             v_com,
-            lb_foot,
-            lf_foot,
-            rb_foot,
-            rf_foot,
+            fl_foot,
+            fr_foot,
+            hl_foot,
+            hr_foot,
             initial_theta,
             params
             )
 
         for step in footstep_planner.plan:
-            x_lb_foot = step['pos']["lb"][0]
-            y_lb_foot = step['pos']["lb"][1]
+            x_hl_foot = step['pos']["HL"][0]
+            y_hl_foot = step['pos']["HL"][1]
 
-            x_rb_foot = step['pos']["rb"][0]
-            y_rb_foot = step['pos']["rb"][1]
+            x_hr_foot = step['pos']["HR"][0]
+            y_hr_foot = step['pos']["HR"][1]
 
-            x_lf_foot = step['pos']["lf"][0]
-            y_lf_foot = step['pos']["lf"][1]
+            x_fl_foot = step['pos']["FL"][0]
+            y_fl_foot = step['pos']["FL"][1]
 
-            x_rf_foot = step['pos']["rf"][0]
-            y_rf_foot = step['pos']["rf"][1]
+            x_fr_foot = step['pos']["FR"][0]
+            y_fr_foot = step['pos']["FR"][1]
 
-            display_marker(ground, 'ground_link', position_in_world_coords=[x_lb_foot,y_lb_foot,0.5],
+            display_marker(ground, 'ground_link', position_in_world_coords=[x_hl_foot,y_hl_foot,0.5],
                     color= [255, 0, 0], print_bodieds_of_the_object=False)
-            display_marker(ground, 'ground_link', position_in_world_coords=[x_rb_foot,y_rb_foot,0.5],
+            display_marker(ground, 'ground_link', position_in_world_coords=[x_hr_foot,y_hr_foot,0.5],
                     color= [0, 0, 255], print_bodieds_of_the_object=False)
-            display_marker(ground, 'ground_link', position_in_world_coords=[x_lf_foot,y_lf_foot,0.5],
+            display_marker(ground, 'ground_link', position_in_world_coords=[x_fl_foot,y_fl_foot,0.5],
                     color= [0, 255, 0], print_bodieds_of_the_object=False)
-            display_marker(ground, 'ground_link', position_in_world_coords=[x_rf_foot,y_rf_foot,0.5],
+            display_marker(ground, 'ground_link', position_in_world_coords=[x_fr_foot,y_fr_foot,0.5],
                     color= [255, 0, 255], print_bodieds_of_the_object=False)    
                
         # create world node and add it to viewer
