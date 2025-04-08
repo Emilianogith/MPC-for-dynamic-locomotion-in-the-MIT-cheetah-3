@@ -23,19 +23,20 @@ class FootstepPlanner:
         total_steps = 10
         for j in range(total_steps):
             # set step duration
+            
             ss_duration = default_ss_duration
             ds_duration = default_ds_duration
 
             # exception for first step
             if j == 0:
                 ss_duration = 0  
-                ds_duration = (default_ss_duration + default_ds_duration) * 2
+                ds_duration = (default_ss_duration + default_ds_duration)
 
             # exception for last step
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration + ds_duration):
+            for i in range(ss_duration):
                 if j > 1:
                     unicycle_theta += vref[2] * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
@@ -159,13 +160,22 @@ class FootstepPlanner:
             ang = np.array((0., 0., unicycle_theta))
 
             # add step to plan
-            self.plan.append({
-                'pos'        : pos,
-                'ang'        : ang,
-                'ss_duration': ss_duration,
-                'ds_duration': ds_duration,
-                'feet_id'    : support_foot
-                })
+            if j == 0:
+                self.plan.append({
+                    'pos'        : pos,
+                    'ang'        : ang,
+                    'ss_duration': ss_duration,
+                    'ds_duration': ds_duration,
+                    'feet_id'    : [1,1,1,1]
+                    })
+            else:
+                self.plan.append({
+                    'pos'        : pos,
+                    'ang'        : ang,
+                    'ss_duration': ss_duration,
+                    'ds_duration': ds_duration,
+                    'feet_id'    : support_foot
+                    })
             
             # switch support foot
             if j > 0:

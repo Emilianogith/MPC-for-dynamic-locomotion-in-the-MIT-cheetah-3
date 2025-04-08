@@ -2,30 +2,17 @@ import dartpy as dart
 import numpy as np
 from utils import *
 
-class LegController:
-    def __init__(self, lite3, lite3_controller, params):
+class SingleLegController():
+    def __init__(self, lite3, lite3_controller, trajectory_generator, params):
         self.lite3 = lite3
         self.lite3_controller = lite3_controller
+        self.trajectory_generator = trajectory_generator
         self.params = params
 
-        self.Kp = np.eye(3)*8
-        self.Kd = np.eye(3)*8
+        self.Kp = np.eye(3)*0.5
+        self.Kd = np.eye(3)*1
 
-    def ground_controller(self, leg_name, forces):
-        
-        joint_name = {  'FL_FOOT' : ['FL_HipX',    'FL_HipY',     'FL_Knee'],    
-                        'FR_FOOT' : ['FR_HipX',    'FR_HipY',     'FR_Knee'],   
-                        'HL_FOOT' : ['HL_HipX',    'HL_HipY',     'HL_Knee'],    
-                        'HR_FOOT' : ['HR_HipX',    'HR_HipY',     'HR_Knee'],
-                        }
-        
-        tasks = ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
-
-        tau = { 'FL_FOOT' : [0, 0, 0],
-                'FR_FOOT' : [0, 0, 0],
-                'HL_FOOT' : [0, 0, 0],
-                'HR_FOOT' : [0, 0, 0],
-              }
+    def ground_controller(self, leg_name, forces): #forces will be determined by the MPC
 
         J = {
             'FL_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
@@ -33,29 +20,17 @@ class LegController:
             'HL_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.hl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,12:15],
             'HR_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.hr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
             }
-
         
-        #print(f"{leg_name} -> {forces[leg_name]}")
-        tau = J[leg_name].T @ forces[leg_name]
-        #print(tau)
+        tau = J[leg_name].T @ forces
         return tau
+    
+    def swing_leg_controller(self, leg_name):
 
-    def swing_controller(self, leg_name, p_ref, v_ref, a_ref, dqi):
-        '''
-        - leg_name: id del piede
-        - p_ref, v_ref: are the corresponding references for the position and velocity of the swing leg trajectory
-        - a_ref: reference acceleration in the body frame
-        - dqi: join velocity
+        swing_data = self.trajectory_generator.generate_feet_trajectories_at_time(self.lite3_controller.time, leg_name)
+        p_des = swing_data['pos'][3:]
+        v_des = swing_data['vel'][3:]
+        a_des = swing_data['acc'][3:]
 
-        p_ref, v_ref, a_ref: dovrebbero corrispondere agli input dati al trajectory_generator
-                             i.e. sono v_ref = 0, p_ref = target_pos = np.array(self.plan[step_index]['pos'][foot])
-
-        dqi: dovrebbe venire dallo swing_data di generate_feet_trajectories_at_time (?)
-             i.e. generate_feet_trajectories_at_time(....)['vel'][3:]
-
-        '''
-
-        # Computing Jacobian, Time Jacobian and Inertia Matrix
         J = {
             'FL_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
             'FR_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.fr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,9:12],
@@ -88,28 +63,23 @@ class LegController:
             'HR_FOOT' : coriolis_gravity[15:],
         }
 
-        # Extracting Jacobian, Time Jacobian and Inertia Matrix of a single leg
-        Ji = J[leg_name]
-        Jdoti = Jdot[leg_name]
-        Mi = M[leg_name]
+        J_leg = J[leg_name]
+        J_leg_dot = Jdot[leg_name]
+        M_leg = M[leg_name]
 
-        op_space_mi = Ji*Mi*Ji.transpose()
+        op_space_mi = J_leg*M_leg*J_leg.transpose()
 
-        # Retreving state information to compute torque
         current_state = self.lite3_controller.retrieve_state()
-        pi = current_state[leg_name]['pos'][3:]
-        vi = current_state[leg_name]['vel'][3:]
+        p_leg_curr = current_state[leg_name]['pos'][3:]
+        v_leg_curr= current_state[leg_name]['vel'][3:]
 
-        # Computing torque of the leg
-
-        # Per matrix C e G, dovrebbe esserci 
-        # getCoriolisAndGravityForces ( inverse dynamics humanoid )
-        # ma è un vettore riga dim = 18
-        # per la velocità del giunTo, dovrebbe essere data dal trajectory
-        
         tau_coriolis_gravity = CG[leg_name]
-        tau_ff = Ji.transpose() @ op_space_mi @ ( a_ref - Jdoti @ dqi) + tau_coriolis_gravity
-        tau = Ji.transpose() @ ( self.Kp @ (p_ref - pi) + self.Kd @ (v_ref - vi) ) + tau_ff
-        
+        tau_ff = J_leg.transpose() @ op_space_mi @ ( a_des - J_leg_dot @ self.lite3_controller.dq[leg_name]) + tau_coriolis_gravity
+        tau = J_leg.transpose() @ ( self.Kp @ ( p_des - p_leg_curr) + self.Kd @ (v_des - v_leg_curr) ) + tau_ff
         return tau
-    
+
+
+
+
+
+
