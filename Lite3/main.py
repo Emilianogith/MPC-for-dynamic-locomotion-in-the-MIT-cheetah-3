@@ -14,17 +14,18 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.lite3 = lite3
         self.time = 0
         self.params = {
-            'g': 9.81,
+            'g': -9.81,
             'h': 0.72,
-            'foot_size': 0.1,
+            'foot_size': 0.1,   #non serve
             'step_height': 0.01,
             'ss_duration': 100,
             'ds_duration': 100,
             'world_time_step': world.getTimeStep(), # 0.01
             'first_swing': np.array([0,1,1,0]),
             'µ': 0.5,
-            'N': 100,
+            'N': 200,
             'dof': self.lite3.getNumDofs(), # 18
+            'v_com_ref' : np.array([0.1,0,0])
         }
         self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
 
@@ -76,9 +77,9 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         #print(self.hr_sole_pos)
 
         self.footstep_planner = FootstepPlanner(
-            vref = np.array([0.1, 0.0, 0.0]),
+            vref = np.array([self.params['v_com_ref'][0], self.params['v_com_ref'][1], 0.0]),
             initial_configuration = self.initial,
-            leg_displacement_x = 0.001,
+            leg_displacement_x = 0.010,
             params = self.params,
             )
         
@@ -122,10 +123,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             #print(foot_forces)
             
         #Test value for controls
-        foot_forces = {'FL_FOOT' : [0.0, 0.0, -50.0],
-                       'FR_FOOT' : [0.0, 0.0, -50.0],
-                       'HL_FOOT' : [0.0, 0.0, -50.0],
-                       'HR_FOOT' : [0.0, 0.0, -50.0],
+        foot_forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
+                       'FR_FOOT' : [0.0, 0.0, -60.0],
+                       'HL_FOOT' : [0.0, 0.0, -60.0],
+                       'HR_FOOT' : [0.0, 0.0, -20.0],
                         }
         
         tau = { 'FL_FOOT' : [0, 0, 0],
@@ -146,21 +147,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             self.dq[name][0] = self.lite3.getVelocity(self.lite3.getDof(value[0]).getIndexInSkeleton())
             self.dq[name][1] = self.lite3.getVelocity(self.lite3.getDof(value[1]).getIndexInSkeleton())
             self.dq[name][2] = self.lite3.getVelocity(self.lite3.getDof(value[2]).getIndexInSkeleton())
-        #print(self.dq)
-        #     if task == 'FR_FOOT' or task == 'HL_FOOT':
-        #         #print(self.fr_sole_pos)
-        #         #print(self.footstep_planner.plan[0]['pos'][task])
-        #         #print(self.footstep_planner.plan[1]['pos'][task])
-        #         #print()
-        #         tau_curr = self.leg_controller.swing_controller(task,
-        #                                                         p_ref=self.footstep_planner.plan[1]['pos'][task],
-        #                                                         v_ref=np.zeros(3),
-        #                                                         a_ref=np.zeros(3),
-        #                                                         dqi=np.ones(3)
-        #                                                         )
-        #     else:
-        #         tau_curr = self.leg_controller.ground_controller(task, foot_forces)  #J[task].T @ f[task]
-        #     tau[task] = tau_curr
+
         step_index = self.footstep_planner.get_step_index_at_time(self.time)
         gait = self.footstep_planner.plan[step_index]['feet_id']
 
@@ -257,8 +244,8 @@ if __name__ == "__main__":
     ground = urdfParser.parseSkeleton(ground_path)
     world.addSkeleton(lite3)
     world.addSkeleton(ground)
-    world.setGravity([0, 0, -9.81])
     world.setTimeStep(0.01)
+
 
     #print("world variable:")           #ma che è?
     #print(dir(world))
@@ -280,7 +267,8 @@ if __name__ == "__main__":
             body.setInertia(default_inertia)
 
     node = Lite3Controller(world, lite3)
-
+    world.setGravity([0, 0, node.params['g']])
+    
     display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5],
                 color= [255, 255, 255], print_bodieds_of_the_object=False)
     # display_marker(ground, 'ground_link', position_in_world_coords=[0.1,0,0.5],

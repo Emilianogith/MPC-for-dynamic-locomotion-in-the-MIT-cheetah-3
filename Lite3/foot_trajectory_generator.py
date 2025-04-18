@@ -14,7 +14,7 @@ class FootTrajectoryGenerator:
         #gait = self.footstep_planner.plan[step_index]['feet_id']
         ss_duration = self.footstep_planner.plan[step_index]['ss_duration']
         
-        start_pos  = np.array(self.plan[step_index-1]['pos'][foot])
+        start_pos  = np.array(self.plan[step_index-1]['pos'][foot])  #check il -1
         target_pos = np.array(self.plan[step_index+1]['pos'][foot])
         start_ang  = np.array(self.plan[step_index-1]['ang'])
         target_ang = np.array(self.plan[step_index+1]['ang'])
@@ -30,7 +30,6 @@ class FootTrajectoryGenerator:
         T = ss_duration
 
         if t >= T:
-            print('totti')
             self.plan[step_index]['feet_id'] = [1,1,1,1]
             return {
                 'pos': np.hstack((start_ang, start_pos)),

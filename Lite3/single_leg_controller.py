@@ -9,8 +9,8 @@ class SingleLegController():
         self.trajectory_generator = trajectory_generator
         self.params = params
 
-        self.Kp = np.eye(3)*0.5
-        self.Kd = np.eye(3)*1
+        self.Kp = np.eye(3)*0.8
+        self.Kd = np.eye(3)*0.8
 
     def ground_controller(self, leg_name, forces): #forces will be determined by the MPC
 
@@ -56,7 +56,7 @@ class SingleLegController():
         
         coriolis_gravity = self.lite3.getCoriolisAndGravityForces()
 
-        CG = {
+        CG = {                                          #se non funziona, check
             'FL_FOOT' : coriolis_gravity[6:9],
             'FR_FOOT' : coriolis_gravity[9:12],
             'HL_FOOT' : coriolis_gravity[12:15],
