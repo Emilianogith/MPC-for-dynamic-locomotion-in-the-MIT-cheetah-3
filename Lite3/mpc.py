@@ -1,83 +1,161 @@
 import numpy as np
 import casadi as cs
-from math import sin,cos
+from casadi import SX, MX, cos, sin, vertcat, horzcat
+#from math import sin,cos
+
+def compute_skew(vector):
+  v1 = vector[0]
+  v2 = vector[1]
+  v3 = vector[2]
+
+  matrix = MX.zeros(3, 3)
+  matrix[0, 1] = -v3
+  matrix[1, 0] = v3
+  matrix[0, 2] = v2
+  matrix[2, 0] = -v2
+  matrix[1, 2] = -v1
+  matrix[2, 1] = v1 
+
+  return matrix
 
 class mpc:
   def __init__(self, initial, footstep_planner, params):
     # parameters
     #self.params = params
-    #self.N = params['N']
-    #self.delta = params['world_time_step']
+    self.N = 200 #params['N']
+    self.delta = 0.1 #params['world_time_step']
     #self.h = params['h']
     #self.eta = params['eta'] #non serve
     #self.foot_size = params['foot_size']
     #self.initial = initial
     #self.footstep_planner = footstep_planner
     #self.sigma = lambda t, t0, t1: np.clip((t - t0) / (t1 - t0), 0, 1) # piecewise linear sigmoidal function
-    self.N=200
+
     # optimization problem
     self.opt = cs.Opti('conic')
     p_opts = {"expand": True}
     s_opts = {"max_iter": 1000, "verbose": False}
     self.opt.solver("osqp", p_opts, s_opts)
 
-    self.U = self.opt.variable(3, self.N)
-    self.X = self.opt.variable(9, self.N + 1)
+    self.U = self.opt.variable(12, self.N)
+    self.X = self.opt.variable(13, self.N + 1)
 
     self.x0_param = self.opt.parameter(13)   #theta (rpy), p, omega, pdot, g
 
-        # dynamic model matrices
-    self.yaw = self.x0_param[2]     #check
-    self.R_yaw = np.array([[cos(self.yaw),sin(self.yaw),0],
-                          [-sin(self.yaw),cos(self.yaw),0],
-                          [0,0,1]])
-    self.A = np.zeros((13,13))
-    self.A[0:3,6:9] = self.R_yaw
-    self.A[3:6,9:12] = np.eye(3)
-    print(self.A)
+    # Inertia and mass parameters
+    yaw = self.x0_param[2] #self.opt.parameter(1) #MX.sym("yaw", 1)
+    Rz = vertcat(
+        horzcat(cos(yaw), -sin(yaw), 0),
+        horzcat(sin(yaw),  cos(yaw), 0),
+        horzcat(0,            0,           1)
+    )
 
-    return
+    self.m = 12.72
 
-    ## dynamics
-    #self.f = lambda x, u: cs.vertcat(
-    #  self.A @ x[0:3] + self.B @ u[0],
-    #  self.A @ x[3:6] + self.B @ u[1],
-    #  self.A @ x[6:9] + self.B @ u[2] + np.array([0, - params['g'], 0]),
-    #)
+    I_body = MX.zeros(3,3)
+    I_body[0,0] = 0.24
+    I_body[1,1] = 1
+    I_body[2,2] = 1
 
+    # TODO: totti-check
+    I_hat = Rz @ I_body @ Rz.T 
+    I_hat_inv = cs.inv(I_hat)
+
+    r1 = self.opt.parameter(3)
+    r2 = self.opt.parameter(3)
+    r3 = self.opt.parameter(3)
+    r4 = self.opt.parameter(3)
+
+    r1_skew = compute_skew(r1)
+    r2_skew = compute_skew(r2)
+    r3_skew = compute_skew(r3)
+    r4_skew = compute_skew(r4)
+
+
+    # Dynamic model: A
+    Z3 = MX.zeros(3, 3)
+    Z4 = MX.zeros(3, 1)
+    I3 = MX.eye(3)
+    A_row1 = horzcat(Z3, Z3, Rz, Z3, Z4)
+    A_row2 = horzcat(Z3, Z3, Z3, I3, Z4)
+    A_row3 = MX.zeros(3, 13)
+    A_row4 = MX.zeros(3, 13)
+    A_row4[2, 12] = 1
+    A_row5 = MX.zeros(1, 13)
+    self.A = vertcat(A_row1, A_row2, A_row3, A_row4, A_row5)
+
+    # Dynamic model: A
+    B_row1 = horzcat(Z3, Z3, Z3, Z3)
+    B_row2 = horzcat(Z3, Z3, Z3, Z3)
+    B_row3 = horzcat(I_hat_inv@r1_skew, I_hat_inv@r2_skew, I_hat_inv@r3_skew, I_hat_inv@r4_skew)
+    B_row4 = horzcat(I3 /self.m, I3 /self.m, I3 /self.m, I3 /self.m)
+    B_row5 = MX.zeros(1, 12)
+    self.B = vertcat(B_row1, B_row2, B_row3, B_row4, B_row5)
+
+
+    ## TODO: dynamics
+    self.f = lambda x, u: self.A @ x + self.B @ u
+  
+    # State constraint (19)
     for i in range(self.N):
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i]))
 
+    # Cost function
+    x_des = self.opt.parameter(13, self.N+1)
     cost = cs.sumsqr(self.U) + \
-           100 * cs.sumsqr(self.X[2, 1:].T - self.zmp_x_mid_param) + \
-           100 * cs.sumsqr(self.X[5, 1:].T - self.zmp_y_mid_param) + \
-           100 * cs.sumsqr(self.X[8, 1:].T - self.zmp_z_mid_param)
+           100 * cs.sumsqr(self.X[0:3, :] - x_des[0:3, :]) + \
+           100 * cs.sumsqr(self.X[3:6, :] - x_des[3:6, :]) + \
+           100 * cs.sumsqr(self.X[6:9, :] - x_des[6:9, :]) + \
+           100 * cs.sumsqr(self.X[9:12, :] - x_des[9:12, :]) 
 
     self.opt.minimize(cost)
-
-    # zmp constraints
-    self.opt.subject_to(self.X[2, 1:].T <= self.zmp_x_mid_param + self.foot_size / 2.)
-    self.opt.subject_to(self.X[2, 1:].T >= self.zmp_x_mid_param - self.foot_size / 2.)
-    self.opt.subject_to(self.X[5, 1:].T <= self.zmp_y_mid_param + self.foot_size / 2.)
-    self.opt.subject_to(self.X[5, 1:].T >= self.zmp_y_mid_param - self.foot_size / 2.)
-    self.opt.subject_to(self.X[8, 1:].T <= self.zmp_z_mid_param + self.foot_size / 2.)
-    self.opt.subject_to(self.X[8, 1:].T >= self.zmp_z_mid_param - self.foot_size / 2.)
 
     # initial state constraint
     self.opt.subject_to(self.X[:, 0] == self.x0_param)
 
-    # stability constraint with periodic tail
-    self.opt.subject_to(self.X[1, 0     ] + self.eta * (self.X[0, 0     ] - self.X[2, 0     ]) == \
-                        self.X[1, self.N] + self.eta * (self.X[0, self.N] - self.X[2, self.N]))
-    self.opt.subject_to(self.X[4, 0     ] + self.eta * (self.X[3, 0     ] - self.X[5, 0     ]) == \
-                        self.X[4, self.N] + self.eta * (self.X[3, self.N] - self.X[5, self.N]))
-    self.opt.subject_to(self.X[7, 0     ] + self.eta * (self.X[6, 0     ] - self.X[8, 0     ]) == \
-                        self.X[7, self.N] + self.eta * (self.X[6, self.N] - self.X[8, self.N]))
+    # Force equality constraint (21)
+    swing_param = self.opt.parameter(4, self.N) # inverti binario array gait
+    for i in range(self.N):
+      self.opt.subject_to( swing_param[0,i] * self.U[0:3, i] == 0) 
+      self.opt.subject_to( swing_param[1,i] * self.U[3:6, i] == 0)
+      self.opt.subject_to( swing_param[2,i] * self.U[6:9, i] == 0)
+      self.opt.subject_to( swing_param[3,i] * self.U[9:12, i] == 0) 
+
+    # Force inequality constraint (20)
+    # n_leg = 4
+    # (22) f_minmax: 2*n_leg = 8
+    # (23) fx: 2*2*n_leg
+    # (24) fx: 2*2*n_leg
+    # TODO: check parameters
+    f_min = 10
+    f_max = 666
+    mu = 0.4 
+    for i in range(self.N):
+      # (22)
+      for j in range(2, 12, 3):
+        self.opt.subject_to( f_min <= self.U[j, i] )
+        self.opt.subject_to( self.U[j, i] >= f_max )
+
+      # (23)
+      for j in range(1, 12 , 3):
+        self.opt.subject_to( -mu*self.U[j+1,i] <= self.U[j, i] )
+        self.opt.subject_to( self.U[j, i] <= mu*self.U[j+1,i]  )
+
+        self.opt.subject_to( -mu*self.U[j+1,i] <= -self.U[j, i] )
+        self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+1,i]  )
+      
+      # (24)
+      for j in range(0, 12 , 3):
+        self.opt.subject_to( -mu*self.U[j+2,i] <= self.U[j, i] )
+        self.opt.subject_to( self.U[j, i] <= mu*self.U[j+2,i]  )
+
+        self.opt.subject_to( -mu*self.U[j+2,i] <= -self.U[j, i] )
+        self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+2,i]  )
 
     # state
-    self.x = np.zeros(9)
-    self.lip_state = {'com': {'pos': np.zeros(3), 'vel': np.zeros(3), 'acc': np.zeros(3)},
-                      'zmp': {'pos': np.zeros(3), 'vel': np.zeros(3)}}
+    #self.x = np.zeros(9)
+    #self.lip_state = {'com': {'pos': np.zeros(3), 'vel': np.zeros(3), 'acc': np.zeros(3)},
+    #                  'zmp': {'pos': np.zeros(3), 'vel': np.zeros(3)}}
 
   def solve(self, current, t):
     self.x = np.array([current['com']['pos'][0], current['com']['vel'][0], current['zmp']['pos'][0],
