@@ -7,6 +7,7 @@ import copy
 from utils import *
 from single_leg_controller import SingleLegController
 
+
 class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
     def __init__(self, world, lite3):
         super(Lite3Controller, self).__init__(world)
@@ -95,8 +96,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             lite3 = self.lite3, 
             lite3_controller = self, 
             trajectory_generator =  self.trajectory_generator,
-            params = self.params
+            params = self.params,
+            initial = self.initial,
+            footstep_planner = self.footstep_planner
         )
+
 
         #self.trajectory_generator.show_trajectory(foot_to_sample='FR_FOOT', t_start=0, t_end=800, string_axs='z')
 
@@ -153,11 +157,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         step_index = self.footstep_planner.get_step_index_at_time(self.time)
         gait = self.footstep_planner.plan[step_index]['feet_id']
-
+    
         j=0
         for leg_name in tasks:
             if gait[j] == 1:
-                tau_curr = self.leg_controller.ground_controller(leg_name, foot_forces[leg_name])
+                tau_curr = self.leg_controller.ground_controller(leg_name, self.time)
             else:
                 tau_curr = self.leg_controller.swing_leg_controller(leg_name)
             tau[leg_name] = tau_curr

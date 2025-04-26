@@ -2,6 +2,7 @@ import casadi as ca
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import dartpy as dart
+from casadi import MX
 
 def rotation_vector_difference(rotvec_a, rotvec_b):
     R_a = R.from_rotvec(rotvec_a)
@@ -91,6 +92,21 @@ class QPSolver:
             print("QP Solver failed:", e)
             x_sol = np.zeros(self.n_vars)
         return x_sol
+    
+def compute_skew(vector):
+  v1 = vector[0]
+  v2 = vector[1]
+  v3 = vector[2]
+
+  matrix = MX.zeros(3, 3)
+  matrix[0, 1] = -v3
+  matrix[1, 0] = v3
+  matrix[0, 2] = v2
+  matrix[2, 0] = -v2
+  matrix[1, 2] = -v1
+  matrix[2, 1] = v1 
+
+  return matrix
 
 
 def display_marker(object, body_name, position_in_world_coords,

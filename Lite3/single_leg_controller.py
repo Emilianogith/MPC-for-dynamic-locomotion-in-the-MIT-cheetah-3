@@ -1,18 +1,30 @@
 import dartpy as dart
 import numpy as np
+from mpc import MPC
 from utils import *
 
 class SingleLegController():
-    def __init__(self, lite3, lite3_controller, trajectory_generator, params):
+    def __init__(self, lite3, lite3_controller, trajectory_generator, params, initial, footstep_planner):
         self.lite3 = lite3
         self.lite3_controller = lite3_controller
         self.trajectory_generator = trajectory_generator
         self.params = params
+        self.initial = initial
+        self.footstep_planner = footstep_planner
 
         self.Kp = np.eye(3)*0.8
         self.Kd = np.eye(3)*0.8
 
-    def ground_controller(self, leg_name, forces): #forces will be determined by the MPC
+        self.mpc = MPC(
+            lite3 = self.lite3_controller,
+            initial = self.initial,
+            footstep_planner = self.footstep_planner,
+            params = self.params
+        )
+
+    def ground_controller(self, leg_name, t): #forces will be determined by the MPC
+        
+        forces = self.mpc.solve(t)
 
         J = {
             'FL_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
@@ -21,7 +33,7 @@ class SingleLegController():
             'HR_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.hr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
             }
         
-        tau = J[leg_name].T @ forces
+        tau = J[leg_name].T @ forces[leg_name]
         return tau
     
     def swing_leg_controller(self, leg_name):
