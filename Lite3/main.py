@@ -25,9 +25,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'µ': 0.5,
             'N': 200,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0])
+            'v_com_ref' : np.array([0.1,0,0]),
+            'theta_dot' : 0.0
         }
-        self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
+        #self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
         self.fr_sole = lite3.getBodyNode('FR_FOOT')
@@ -58,26 +59,28 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         self.lite3.setPosition(5, 0.43)
 
-        self.fl_sole_pos = self.retrieve_state()['FL_FOOT']['pos'][3:] #self.fl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        self.fr_sole_pos = self.retrieve_state()['FR_FOOT']['pos'][3:] #self.fr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        self.hl_sole_pos = self.retrieve_state()['HL_FOOT']['pos'][3:] #self.hl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        self.hr_sole_pos = self.retrieve_state()['HR_FOOT']['pos'][3:] #self.hr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-
+        initial_state = self.retrieve_state()
+        self.fl_sole_pos = initial_state['FL_FOOT']['pos'][3:] #self.fl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        self.fr_sole_pos = initial_state['FR_FOOT']['pos'][3:] #self.fr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        self.hl_sole_pos = initial_state['HL_FOOT']['pos'][3:] #self.hl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        self.hr_sole_pos = initial_state['HR_FOOT']['pos'][3:] #self.hr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        self.roll        = initial_state['TORSO']['pos'][0] 
+        self.pitch       = initial_state['TORSO']['pos'][1] 
+        self.yaw         = initial_state['TORSO']['pos'][2] 
+        self.com_pos     = initial_state['com']['pos']
         self.initial = {
             'FL_FOOT' : self.fl_sole_pos,
             'FR_FOOT' : self.fr_sole_pos,
             'HL_FOOT' : self.hl_sole_pos,
             'HR_FOOT' : self.hr_sole_pos,
-            'theta': 0
+            'roll' : self.roll,
+            'pitch': self.pitch,
+            'yaw'  : self.yaw,
+            'com_position' : self.com_pos,
         }
 
-        #print(self.fl_sole_pos)
-        #print(self.fr_sole_pos)
-        #print(self.hl_sole_pos)
-        #print(self.hr_sole_pos)
-
         self.footstep_planner = FootstepPlanner(
-            vref = np.array([self.params['v_com_ref'][0], self.params['v_com_ref'][1], 0.0]),
+            vref = np.array([self.params['v_com_ref'][0], self.params['v_com_ref'][1], self.params['theta_dot']]),
             initial_configuration = self.initial,
             leg_displacement_x = 0.010,
             params = self.params,
@@ -258,6 +261,7 @@ if __name__ == "__main__":
     
     inertia_matrix = lite3.getMassMatrix()[3:6]
 
+    total_mass = 0
     # set default inertia
     default_inertia = dart.dynamics.Inertia(1e-8, np.zeros(3), 1e-10 * np.identity(3))
     for body in lite3.getBodyNodes():
@@ -265,6 +269,10 @@ if __name__ == "__main__":
         if body.getMass() == 0.0:
             body.setMass(1e-8)
             body.setInertia(default_inertia)
+        total_mass += body.getMass()
+
+    print("MASSA TOTALE:")
+    print(total_mass)
 
     node = Lite3Controller(world, lite3)
     world.setGravity([0, 0, node.params['g']])

@@ -11,7 +11,7 @@ class FootstepPlanner:
         fr_foot = initial_configuration['FR_FOOT'] 
         hl_foot = initial_configuration['HL_FOOT'] 
         hr_foot = initial_configuration['HR_FOOT']
-        initial_theta = initial_configuration['theta']
+        initial_theta = initial_configuration['yaw']
 
         unicycle_pos   = (hl_foot + hr_foot) / 2.
         unicycle_theta = initial_theta
@@ -20,6 +20,9 @@ class FootstepPlanner:
         support_foot = params['first_swing']
         self.plan = []
 
+        R = np.array([[np.cos(initial_theta), - np.sin(initial_theta)],
+                      [np.sin(initial_theta),   np.cos(initial_theta)]])
+                    
         total_steps = 10
         for j in range(total_steps):
             # set step duration
@@ -44,13 +47,17 @@ class FootstepPlanner:
                     
                     unicycle_pos[:2] += R @ vref[:2] * params['world_time_step'] # not use R for numerical approximation error
                     #unicycle_pos[:2] += vref[:2] * params['world_time_step']
+        
             #print(unicycle_pos[:2])
                     
             # compute step position
-            torso_displacement = (fl_foot[0]-hl_foot[0])
-            #torso_displacement = torso_displacement[0] 
-            leg_displacement_y = (hr_foot[1]- hl_foot[1])/2.
-            #leg_displacement_y = leg_displacement_y[0] 
+            #torso_displacement = (fl_foot[0]-hl_foot[0])
+            torso_displacement = R @ (fl_foot[:2]-hl_foot[:2])
+            torso_displacement = torso_displacement[0] 
+
+            leg_displacement_y = R @ (hr_foot[:2]- hl_foot[:2])/2.
+            #leg_displacement_y = (hr_foot[1]- hl_foot[1])/2.
+            leg_displacement_y = leg_displacement_y[1] 
             #leg_displacement_x  = 0.1  # length of the step
 
             if j == total_steps-1: # Lite3 end its walk ( no more steps ahead )
@@ -250,6 +257,6 @@ class FootstepPlanner:
         start_time = self.get_start_time(step_index)
         time_in_step = time - start_time
         if time_in_step < self.plan[step_index]['ss_duration']:
-            return 'ss'
+            return self.plan[step_index]['feed_id']
         else:
-            return 'ds'
+            return [1, 1, 1, 1]

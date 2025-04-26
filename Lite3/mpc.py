@@ -19,16 +19,16 @@ def compute_skew(vector):
   return matrix
 
 class mpc:
-  def __init__(self, initial, footstep_planner, params):
+  def __init__(self, lite3, initial, footstep_planner, params):
     # parameters
-    #self.params = params
-    self.N = 200 #params['N']
-    self.delta = 0.1 #params['world_time_step']
-    #self.h = params['h']
-    #self.eta = params['eta'] #non serve
-    #self.foot_size = params['foot_size']
-    #self.initial = initial
-    #self.footstep_planner = footstep_planner
+    self.params = params
+    self.lite3 = lite3
+    self.N = params['N']
+    self.delta = params['world_time_step']
+    self.h = params['h']
+    self.foot_size = params['foot_size']
+    self.initial = initial
+    self.footstep_planner = footstep_planner
     #self.sigma = lambda t, t0, t1: np.clip((t - t0) / (t1 - t0), 0, 1) # piecewise linear sigmoidal function
 
     # optimization problem
@@ -61,15 +61,15 @@ class mpc:
     I_hat = Rz @ I_body @ Rz.T 
     I_hat_inv = cs.inv(I_hat)
 
-    r1 = self.opt.parameter(3)
-    r2 = self.opt.parameter(3)
-    r3 = self.opt.parameter(3)
-    r4 = self.opt.parameter(3)
+    #self.r1 = self.opt.parameter(3)
+    #self.r2 = self.opt.parameter(3)
+    #self.r3 = self.opt.parameter(3)
+    #self.r4 = self.opt.parameter(3)
 
-    r1_skew = compute_skew(r1)
-    r2_skew = compute_skew(r2)
-    r3_skew = compute_skew(r3)
-    r4_skew = compute_skew(r4)
+    r1_skew = self.opt.parameter(3,3) #compute_skew(self.r1)
+    r2_skew = self.opt.parameter(3,3) #compute_skew(self.r2)
+    r3_skew = self.opt.parameter(3,3) #compute_skew(self.r3)
+    r4_skew = self.opt.parameter(3,3) #compute_skew(self.r4)
 
 
     # Dynamic model: A
@@ -101,12 +101,12 @@ class mpc:
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i]))
 
     # Cost function
-    x_des = self.opt.parameter(13, self.N+1)
+    self.x_des = self.opt.parameter(13, self.N+1)
     cost = cs.sumsqr(self.U) + \
-           100 * cs.sumsqr(self.X[0:3, :] - x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:6, :] - x_des[3:6, :]) + \
-           100 * cs.sumsqr(self.X[6:9, :] - x_des[6:9, :]) + \
-           100 * cs.sumsqr(self.X[9:12, :] - x_des[9:12, :]) 
+           100 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
+           100 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           100 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) 
 
     self.opt.minimize(cost)
 
@@ -114,12 +114,12 @@ class mpc:
     self.opt.subject_to(self.X[:, 0] == self.x0_param)
 
     # Force equality constraint (21)
-    swing_param = self.opt.parameter(4, self.N) # inverti binario array gait
+    self.swing_param = self.opt.parameter(4, self.N) # inverti binario array gait
     for i in range(self.N):
-      self.opt.subject_to( swing_param[0,i] * self.U[0:3, i] == 0) 
-      self.opt.subject_to( swing_param[1,i] * self.U[3:6, i] == 0)
-      self.opt.subject_to( swing_param[2,i] * self.U[6:9, i] == 0)
-      self.opt.subject_to( swing_param[3,i] * self.U[9:12, i] == 0) 
+      self.opt.subject_to( self.swing_param[0,i] * self.U[0:3, i] == 0) 
+      self.opt.subject_to( self.swing_param[1,i] * self.U[3:6, i] == 0)
+      self.opt.subject_to( self.swing_param[2,i] * self.U[6:9, i] == 0)
+      self.opt.subject_to( self.swing_param[3,i] * self.U[9:12, i] == 0) 
 
     # Force inequality constraint (20)
     # n_leg = 4
@@ -158,17 +158,56 @@ class mpc:
     #                  'zmp': {'pos': np.zeros(3), 'vel': np.zeros(3)}}
 
   def solve(self, current, t):
-    self.x = np.array([current['com']['pos'][0], current['com']['vel'][0], current['zmp']['pos'][0],
-                       current['com']['pos'][1], current['com']['vel'][1], current['zmp']['pos'][1],
-                       current['com']['pos'][2], current['com']['vel'][2], current['zmp']['pos'][2]])
+    #self.x = np.array([current['com']['pos'][0], current['com']['vel'][0], current['zmp']['pos'][0],
+    #                   current['com']['pos'][1], current['com']['vel'][1], current['zmp']['pos'][1],
+    #                   current['com']['pos'][2], current['com']['vel'][2], current['zmp']['pos'][2]])
     
-    mc_x, mc_y, mc_z = self.generate_moving_constraint(t)
+    #---------------------- Retreive state ----------------------  
+    # ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
+    current_state = self.lite3.retreive_state() # TODO: totti check di stampe
+    state_rpy = current_state['TORSO']['pos']
+    state_com = current_state['com']['pos']
+    state_av  = current_state['TORSO']['vel']
+    state_lv  = current_state['com']['vel']
+    state_g   = self.params['g']
+    
+    self.x = np.array[state_rpy, state_com, state_av, state_lv, state_g]
 
-    # solve optimization problem
-    self.opt.set_value(self.x0_param, self.x)
-    self.opt.set_value(self.zmp_x_mid_param, mc_x)
-    self.opt.set_value(self.zmp_y_mid_param, mc_y)
-    self.opt.set_value(self.zmp_z_mid_param, mc_z)
+    #mc_x, mc_y, mc_z = self.generate_moving_constraint(t)
+
+    #---------------------- Parameter substitutions ----------------------
+    r1_skew_num = compute_skew( current_state['FL_FOOT']['pos'][3:] - current_state['com']['pos'] )
+    r2_skew_num = compute_skew( current_state['FR_FOOT']['pos'][3:] - current_state['com']['pos'] )
+    r3_skew_num = compute_skew( current_state['HL_FOOT']['pos'][3:] - current_state['com']['pos'] )
+    r4_skew_num = compute_skew( current_state['HR_FOOT']['pos'][3:] - current_state['com']['pos'] )
+       
+    self.opt.set_value(self.x0_param, self.x) # Substitution initial state
+    self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
+    self.opt.set_value(self.r2_skew, r2_skew_num ) # Substitution for matrix B
+    self.opt.set_value(self.r3_skew, r3_skew_num ) # Substitution for matrix B
+    self.opt.set_value(self.r4_skew, r4_skew_num ) # Substitution for matrix B
+    
+    # Equality constraint (21): 
+    swing_inverted = np.array(4, self.N)
+    for i in range(self.N): 
+      swing_value = self.footstep_planner.get_phase_at_time(t+i)
+      swing_inverted[:, i] = [1, 1, 1, 1] - swing_value
+    
+    self.opt.set_value(self.swing_param, swing_inverted)
+
+    # Cost function: x_des value for com (18)
+    # x_des: ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
+    # setting constant values
+    x_des_num = np.zeros(13, self.N)
+    x_des_num[:2, :] = np.ones(2, self.N) * [ [self.initial['roll']], [self.inital['pitch']]] # roll, pitch state
+    x_des_num[8, :]  = np.ones(1, self.N) * self.params['theta_dot'] # Constant velocity for yaw
+    x_des_num[9:12, :] = np.ones(3, self.N) * self.params['v_com_ref'] # Constant velocity of CoM
+    x_des_num[12, :]   = np.ones(1, self.N) * self.params['g'] # Gravity term
+    for i in range(1, self.N):
+      x_des_num[3, i] = x_des_num[3, i-1] + theta_dot*dt   # Integrating yaw
+      x_des_num[, i]
+    
+    
 
     sol = self.opt.solve()
     self.x = sol.value(self.X[:,1])
