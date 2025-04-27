@@ -20,10 +20,10 @@ class MPC:
     self.yaw_start = initial['yaw']
 
     # optimization problem
-    self.opt = cs.Opti('conic')
+    self.opt = cs.Opti()
     p_opts = {"expand": True}
     s_opts = {"max_iter": 1000, "verbose": False}
-    self.opt.solver("osqp", p_opts, s_opts)
+    self.opt.solver("ipopt", p_opts, s_opts)
 
     self.U = self.opt.variable(12, self.N)
     self.X = self.opt.variable(13, self.N + 1)
@@ -155,41 +155,32 @@ class MPC:
     r2_skew_num = compute_skew( current_state['FR_FOOT']['pos'][3:] - current_state['com']['pos'] )
     r3_skew_num = compute_skew( current_state['HL_FOOT']['pos'][3:] - current_state['com']['pos'] )
     r4_skew_num = compute_skew( current_state['HR_FOOT']['pos'][3:] - current_state['com']['pos'] )
-       
+
     self.opt.set_value(self.x0_param, self.x) # Substitution initial state
     self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
-    print('r1_skew')
-    print(self.r1_skew)
-    print('r1_skew_num')
-    print(r1_skew_num)
-    print('r2_skew')
-    print(self.r2_skew)
-    print('r21_skew_num')
-    print(r2_skew_num)
     self.opt.set_value(self.r2_skew, r2_skew_num ) # Substitution for matrix B
     self.opt.set_value(self.r3_skew, r3_skew_num ) # Substitution for matrix B
     self.opt.set_value(self.r4_skew, r4_skew_num ) # Substitution for matrix B
     
     # Equality constraint (21): 
-    swing_inverted = np.array(4, self.N)
+    swing_inverted = np.zeros((4, self.N))
     for i in range(self.N): 
       swing_value = self.footstep_planner.get_phase_at_time(t+i)
-      swing_inverted[:, i] = [1, 1, 1, 1] - swing_value
+      swing_inverted[:, i] = np.array([1, 1, 1, 1]) - np.array(swing_value)
     
     self.opt.set_value(self.swing_param, swing_inverted)
 
     # Cost function: x_des value for com (18)
     # x_des: ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
     # setting constant values
-    x_des_num = np.zeros(13, self.N)
-    x_des_num[:2, :] = np.ones(2, self.N) * [ [self.initial['roll']], [self.inital['pitch']]] # roll, pitch state
-    x_des_num[8, :]  = np.ones(1, self.N) * self.params['theta_dot'] # Constant velocity for yaw
-    x_des_num[9:12, :] = np.ones(3, self.N) * self.params['v_com_ref'] # Constant velocity of CoM
-    x_des_num[12, :]   = np.ones(1, self.N) * self.params['g'] # Gravity term
-
+    x_des_num = np.zeros((13, self.N+1))
+    x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
+    x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
+    x_des_num[9:12, :] = np.ones((3, self.N+1)) * self.params['v_com_ref'].reshape(3,1) # Constant velocity of CoM
+    x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
     x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
     x_des_num[3:6,0] = self.com_pos_start + self.params['v_com_ref']*self.delta
-    for i in range(1, self.N):
+    for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + self.params['v_com_ref']*self.delta # Integrating com_pos
     

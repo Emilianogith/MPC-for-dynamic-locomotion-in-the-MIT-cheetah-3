@@ -2,7 +2,7 @@ import casadi as ca
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import dartpy as dart
-from casadi import MX
+from casadi import MX, DM
 
 def rotation_vector_difference(rotvec_a, rotvec_b):
     R_a = R.from_rotvec(rotvec_a)
@@ -98,7 +98,8 @@ def compute_skew(vector):
   v2 = vector[1]
   v3 = vector[2]
 
-  matrix = MX.zeros(3, 3)
+  #matrix = DM.zeros(3, 3)
+  matrix = np.zeros((3,3))
   matrix[0, 1] = -v3
   matrix[1, 0] = v3
   matrix[0, 2] = v2
