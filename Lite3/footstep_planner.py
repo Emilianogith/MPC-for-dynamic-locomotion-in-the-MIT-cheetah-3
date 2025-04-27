@@ -53,37 +53,38 @@ class FootstepPlanner:
             # compute step position
             #torso_displacement = (fl_foot[0]-hl_foot[0])
             torso_displacement = R @ (fl_foot[:2]-hl_foot[:2])
-            torso_displacement = torso_displacement[0] 
 
             leg_displacement_y = R @ (hr_foot[:2]- hl_foot[:2])/2.
-            #leg_displacement_y = (hr_foot[1]- hl_foot[1])/2.
-            leg_displacement_y = leg_displacement_y[1] 
-            #leg_displacement_x  = 0.1  # length of the step
+            #leg_displacement_y = leg_displacement_y[1] 
+
+            input_vector = np.array([0.1, 0]).reshape(2,1)
+            leg_displacement_x = R @ input_vector # length of the step: 0.1
+            leg_displacement_x = leg_displacement_x.flatten()
 
             if j == total_steps-1: # Lite3 end its walk ( no more steps ahead )
-                leg_displacement_x = 0
+                #leg_displacement_x = 0
                 pos = {
                         "FL_FOOT": [
-                            unicycle_pos[0] + torso_displacement + leg_displacement_x, 
-                            unicycle_pos[1] - leg_displacement_y,
+                            unicycle_pos[0] + torso_displacement[0] + leg_displacement_x[0] - leg_displacement_y[0], 
+                            unicycle_pos[1] + torso_displacement[1] + leg_displacement_x[1] - leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
 
                         "FR_FOOT": [
-                            unicycle_pos[0]  + torso_displacement + leg_displacement_x,
-                            unicycle_pos[1]  + leg_displacement_y, 
+                            unicycle_pos[0]  + torso_displacement[0] + leg_displacement_x[0] + leg_displacement_y[0],
+                            unicycle_pos[1]  + torso_displacement[1] + leg_displacement_x[1] + leg_displacement_y[1], 
                             unicycle_pos[2]
                         ],
 
                         "HL_FOOT": [
-                            unicycle_pos[0] + leg_displacement_x,
-                            unicycle_pos[1] - leg_displacement_y,
+                            unicycle_pos[0] + leg_displacement_x[0] - leg_displacement_y[0],
+                            unicycle_pos[1] + leg_displacement_x[1] - leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
                         
                         "HR_FOOT": [
-                            unicycle_pos[0] + leg_displacement_x, 
-                            unicycle_pos[1] + leg_displacement_y,
+                            unicycle_pos[0] + leg_displacement_x[0] + leg_displacement_y[0], 
+                            unicycle_pos[1] + leg_displacement_x[1] + leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
                         
@@ -98,26 +99,26 @@ class FootstepPlanner:
             elif j > 0: # Lite3 walk
                 pos = {
                         "FL_FOOT": [
-                            self.plan[j-1]['pos']['FL_FOOT'][0] if support_foot[2] else unicycle_pos[0] + torso_displacement + leg_displacement_x, 
-                            self.plan[j-1]['pos']['FL_FOOT'][1] if support_foot[2] else unicycle_pos[1] - leg_displacement_y,
+                            self.plan[j-1]['pos']['FL_FOOT'][0] if support_foot[2] else unicycle_pos[0] + torso_displacement[0] + leg_displacement_x[0] - leg_displacement_y[0], 
+                            self.plan[j-1]['pos']['FL_FOOT'][1] if support_foot[2] else unicycle_pos[1] + torso_displacement[1] + leg_displacement_x[1] - leg_displacement_y[1],
                             self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[2] else unicycle_pos[2]
                         ],      
 
                         "FR_FOOT": [
-                            self.plan[j-1]['pos']['FR_FOOT'][0] if support_foot[3] else unicycle_pos[0]  + torso_displacement + leg_displacement_x,
-                            self.plan[j-1]['pos']['FR_FOOT'][1] if support_foot[3] else unicycle_pos[1]  + leg_displacement_y,
+                            self.plan[j-1]['pos']['FR_FOOT'][0] if support_foot[3] else unicycle_pos[0]  + torso_displacement[0] + leg_displacement_x[0] + leg_displacement_y[0],
+                            self.plan[j-1]['pos']['FR_FOOT'][1] if support_foot[3] else unicycle_pos[1]  + torso_displacement[1] + leg_displacement_x[1] + leg_displacement_y[1],
                             self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[3] else unicycle_pos[2]
                         ],
 
                         "HL_FOOT": [
-                            self.plan[j-1]['pos']['HL_FOOT'][0] if support_foot[0] else unicycle_pos[0] + leg_displacement_x,
-                            self.plan[j-1]['pos']['HL_FOOT'][1] if support_foot[0] else unicycle_pos[1] - leg_displacement_y,
+                            self.plan[j-1]['pos']['HL_FOOT'][0] if support_foot[0] else unicycle_pos[0] + leg_displacement_x[0] - leg_displacement_y[0],
+                            self.plan[j-1]['pos']['HL_FOOT'][1] if support_foot[0] else unicycle_pos[1] + leg_displacement_x[1] - leg_displacement_y[1],
                             self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[0] else unicycle_pos[2]
                         ],
                         
                         "HR_FOOT": [
-                            self.plan[j-1]['pos']['HR_FOOT'][0] if support_foot[1] else unicycle_pos[0] + leg_displacement_x, 
-                            self.plan[j-1]['pos']['HR_FOOT'][1] if support_foot[1] else unicycle_pos[1] + leg_displacement_y,
+                            self.plan[j-1]['pos']['HR_FOOT'][0] if support_foot[1] else unicycle_pos[0] + leg_displacement_x[0] + leg_displacement_y[0], 
+                            self.plan[j-1]['pos']['HR_FOOT'][1] if support_foot[1] else unicycle_pos[1] + leg_displacement_x[1] + leg_displacement_y[1],
                             self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[1] else unicycle_pos[2]
                         ],
                          
@@ -132,26 +133,26 @@ class FootstepPlanner:
             else: # Lite3 Stand-up
                 pos = {
                         "FL_FOOT": [
-                            unicycle_pos[0] + torso_displacement, 
-                            unicycle_pos[1] - leg_displacement_y,
+                            unicycle_pos[0] + torso_displacement[0] + leg_displacement_y[0], 
+                            unicycle_pos[1] + torso_displacement[1] - leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
 
                         "FR_FOOT": [
-                            unicycle_pos[0]  + torso_displacement, 
-                            unicycle_pos[1]  + leg_displacement_y,
+                            unicycle_pos[0]  + torso_displacement[0] + leg_displacement_y[0], 
+                            unicycle_pos[1]  + torso_displacement[1] + leg_displacement_y[1],
                             unicycle_pos[2]
                         ], 
 
                         "HL_FOOT": [
-                            unicycle_pos[0],
-                            unicycle_pos[1] - leg_displacement_y,
+                            unicycle_pos[0] - leg_displacement_y[0],
+                            unicycle_pos[1] - leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
                         
                         "HR_FOOT": [
-                            unicycle_pos[0], 
-                            unicycle_pos[1] + leg_displacement_y,
+                            unicycle_pos[0] + leg_displacement_y[0], 
+                            unicycle_pos[1] + leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
                         
