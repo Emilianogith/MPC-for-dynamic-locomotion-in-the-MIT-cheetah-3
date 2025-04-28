@@ -19,6 +19,8 @@ class MPC:
     self.com_pos_start = initial['com_position']
     self.yaw_start = initial['yaw']
 
+    print(self.com_pos_start)
+
     # optimization problem
     self.opt = cs.Opti('conic')
     p_opts = {"expand": True}
@@ -44,7 +46,7 @@ class MPC:
     self.m = 12.72
 
     I_body_inv = MX.zeros(3,3)
-    I_body_inv[0,0] = 1/0.24
+    I_body_inv[0,0] = 1/1
     I_body_inv[1,1] = 1/1
     I_body_inv[2,2] = 1/1
 
@@ -93,9 +95,9 @@ class MPC:
 
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
-    cost = cs.sumsqr(self.U) + \
+    cost = 0.01* cs.sumsqr(self.U) + \
            10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           10 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
+           100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
            10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
            10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            cs.sumsqr(self.X[12, :] - self.x_des[12, :])
@@ -116,8 +118,8 @@ class MPC:
 
     # Force inequality constraint (20)
     # TODO: check parameters
-    f_min = -500
-    f_max = 500
+    f_min = 10
+    f_max = 666
     mu = 0.4 
     for i in range(self.N):
       # (22)
@@ -178,21 +180,20 @@ class MPC:
     # setting constant values
     x_des_num = np.zeros((13, self.N+1))
     x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
-    
-    for i in range(self.N+1):
-      print(x_des_num[2, :])
 
     x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
     x_des_num[9:12, :] = np.ones((3, self.N+1)) * self.params['v_com_ref'].reshape(3,1) # Constant velocity of CoM
     x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
-    #x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
+    x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
     x_des_num[3:6,0] = self.com_pos_start + self.params['v_com_ref']*self.delta
+    x_des_num[5,0] = self.h
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + self.params['v_com_ref']*self.delta # Integrating com_pos
     
-    #for i in range(self.N+1):
-    #  print(x_des_num[:, i])
+    print(x_des_num[:,0])
+
+    print(x_des_num[:,10])
     
     print("------------------------------------------------------------------------------------------------")
 
@@ -202,11 +203,11 @@ class MPC:
     sol = self.opt.solve()
 
     #aggiornare variabile integrazione
-    self.com_pos_start = x_des_num[2,0]
-    self.yaw_start = x_des_num[3:6,0]
+    self.com_pos_start = x_des_num[3:6,0]
+    self.yaw_start = x_des_num[2,0]
 
     self.x = sol.value(self.X[:,1])
-    self.u = -sol.value(self.U[:,0]) #forces
+    self.u = sol.value(self.U[:,0]) #forces
 
     #self.opt.set_initial(self.U, sol.value(self.U))
     self.opt.set_initial(self.X, sol.value(self.X))

@@ -25,7 +25,7 @@ class SingleLegController():
     def ground_controller(self, leg_name, t): #forces will be determined by the MPC
         
         forces = self.mpc.solve(t)
-
+        
         #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
         #          'FR_FOOT' : [0.0, 0.0, -60.0],
         #          'HL_FOOT' : [0.0, 0.0, -60.0],
@@ -39,7 +39,7 @@ class SingleLegController():
             'HR_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.hr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
             }
         
-        tau = J[leg_name].T @ forces[leg_name]
+        tau = J[leg_name].T @ -forces[leg_name]
         return tau
     
     def swing_leg_controller(self, leg_name):

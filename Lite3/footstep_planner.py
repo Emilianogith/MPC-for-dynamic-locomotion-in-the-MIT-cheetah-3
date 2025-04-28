@@ -23,7 +23,7 @@ class FootstepPlanner:
         R = np.array([[np.cos(initial_theta), - np.sin(initial_theta)],
                       [np.sin(initial_theta),   np.cos(initial_theta)]])
                     
-        total_steps = 4
+        total_steps = 10
         for j in range(total_steps):
             # set step duration
             

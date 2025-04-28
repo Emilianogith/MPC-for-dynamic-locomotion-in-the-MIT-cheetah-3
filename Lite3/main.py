@@ -16,7 +16,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.time = 0
         self.params = {
             'g': -9.81,
-            'h': 0.72,
+            'h': 0.1,
             'foot_size': 0.1,   #non serve
             'step_height': 0.01,
             'ss_duration': 70,
@@ -69,6 +69,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.pitch       = initial_state['TORSO']['pos'][1] 
         self.yaw         = initial_state['TORSO']['pos'][2] 
         self.com_pos     = initial_state['com']['pos']
+        print(self.com_pos)
         self.initial = {
             'FL_FOOT' : self.fl_sole_pos,
             'FR_FOOT' : self.fr_sole_pos,
