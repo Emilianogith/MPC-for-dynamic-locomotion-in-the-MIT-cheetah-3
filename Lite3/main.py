@@ -19,14 +19,14 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.72,
             'foot_size': 0.1,   #non serve
             'step_height': 0.01,
-            'ss_duration': 100,
-            'ds_duration': 100,
+            'ss_duration': 70,
+            'ds_duration': 30,
             'world_time_step': world.getTimeStep(), # 0.01
-            'first_swing': np.array([0,1,1,0]),
+            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
             'µ': 0.5,
-            'N': 200,
+            'N': 50,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0]),
+            'v_com_ref' : np.array([0.0,0,0]),
             'theta_dot' : 0.0
         }
         #self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
@@ -173,6 +173,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             lite3.setCommand(lite3.getDof(value[2]).getIndexInSkeleton(), tau[task][2])
 
         self.time +=1
+        print(f"Current time: {self.time}")
         return
         
     def retrieve_state(self):

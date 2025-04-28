@@ -23,7 +23,7 @@ class FootstepPlanner:
         R = np.array([[np.cos(initial_theta), - np.sin(initial_theta)],
                       [np.sin(initial_theta),   np.cos(initial_theta)]])
                     
-        total_steps = 10
+        total_steps = 4
         for j in range(total_steps):
             # set step duration
             
@@ -182,7 +182,7 @@ class FootstepPlanner:
                     'ang'        : ang,
                     'ss_duration': ss_duration,
                     'ds_duration': ds_duration,
-                    'feet_id'    : support_foot
+                    'feet_id'    : [1,1,1,1]#support_foot
                     })
             
             # switch support foot
@@ -258,6 +258,6 @@ class FootstepPlanner:
         start_time = self.get_start_time(step_index)
         time_in_step = time - start_time
         if time_in_step < self.plan[step_index]['ss_duration']:
-            return self.plan[step_index]['feed_id']
+            return self.plan[step_index]['feet_id']
         else:
             return [1, 1, 1, 1]

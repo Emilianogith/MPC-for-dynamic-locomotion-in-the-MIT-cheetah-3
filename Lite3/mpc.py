@@ -20,10 +20,13 @@ class MPC:
     self.yaw_start = initial['yaw']
 
     # optimization problem
-    self.opt = cs.Opti()
+    self.opt = cs.Opti('conic')
     p_opts = {"expand": True}
-    s_opts = {"max_iter": 1000, "verbose": False}
-    self.opt.solver("ipopt", p_opts, s_opts)
+    s_opts = {"max_iter": 1000, 
+              "verbose": False,
+              #"error_on_fail": True
+              }
+    self.opt.solver("osqp", p_opts, s_opts)
 
     self.U = self.opt.variable(12, self.N)
     self.X = self.opt.variable(13, self.N + 1)
@@ -40,14 +43,14 @@ class MPC:
 
     self.m = 12.72
 
-    I_body = MX.zeros(3,3)
-    I_body[0,0] = 0.24
-    I_body[1,1] = 1
-    I_body[2,2] = 1
+    I_body_inv = MX.zeros(3,3)
+    I_body_inv[0,0] = 1/0.24
+    I_body_inv[1,1] = 1/1
+    I_body_inv[2,2] = 1/1
 
     # TODO: totti-check
-    I_hat = Rz @ I_body @ Rz.T 
-    I_hat_inv = cs.inv(I_hat)
+    #I_hat = Rz @ I_body @ Rz.T 
+    I_hat_inv = Rz @I_body_inv @ Rz.T  #cs.inv(I_hat)
 
     #self.r1 = self.opt.parameter(3)
     #self.r2 = self.opt.parameter(3)
@@ -81,7 +84,7 @@ class MPC:
     self.B = vertcat(B_row1, B_row2, B_row3, B_row4, B_row5)
 
 
-    ## TODO: dynamics
+    ## TODO: dynamics 
     self.f = lambda x, u: self.A @ x + self.B @ u
   
     # State constraint (19)
@@ -91,11 +94,11 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = cs.sumsqr(self.U) + \
-           100 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
-           100 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           100 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
-           1   * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
+           10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           10 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
+           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           cs.sumsqr(self.X[12, :] - self.x_des[12, :])
 
     self.opt.minimize(cost)
 
@@ -110,34 +113,34 @@ class MPC:
       self.opt.subject_to( self.swing_param[2,i] * self.U[6:9, i] == 0)
       self.opt.subject_to( self.swing_param[3,i] * self.U[9:12, i] == 0) 
 
+
     # Force inequality constraint (20)
     # TODO: check parameters
-    f_min = 10
-    f_max = 666
+    f_min = -500
+    f_max = 500
     mu = 0.4 
     for i in range(self.N):
       # (22)
       for j in range(2, 12, 3):
         self.opt.subject_to( f_min <= self.U[j, i] )
-        self.opt.subject_to( self.U[j, i] >= f_max )
+        self.opt.subject_to( self.U[j, i] <= f_max )
 
-      # (23)
+      # (24)
       for j in range(1, 12 , 3):
         self.opt.subject_to( -mu*self.U[j+1,i] <= self.U[j, i] )
         self.opt.subject_to( self.U[j, i] <= mu*self.U[j+1,i]  )
 
         self.opt.subject_to( -mu*self.U[j+1,i] <= -self.U[j, i] )
         self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+1,i]  )
-      
-      # (24)
+
+      # (23)
       for j in range(0, 12 , 3):
         self.opt.subject_to( -mu*self.U[j+2,i] <= self.U[j, i] )
         self.opt.subject_to( self.U[j, i] <= mu*self.U[j+2,i]  )
 
         self.opt.subject_to( -mu*self.U[j+2,i] <= -self.U[j, i] )
         self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+2,i]  )
-
-
+      
   def solve(self, t):
     
     #---------------------- Retreive state ----------------------  
@@ -175,15 +178,24 @@ class MPC:
     # setting constant values
     x_des_num = np.zeros((13, self.N+1))
     x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
+    
+    for i in range(self.N+1):
+      print(x_des_num[2, :])
+
     x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
     x_des_num[9:12, :] = np.ones((3, self.N+1)) * self.params['v_com_ref'].reshape(3,1) # Constant velocity of CoM
     x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
-    x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
+    #x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
     x_des_num[3:6,0] = self.com_pos_start + self.params['v_com_ref']*self.delta
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + self.params['v_com_ref']*self.delta # Integrating com_pos
     
+    #for i in range(self.N+1):
+    #  print(x_des_num[:, i])
+    
+    print("------------------------------------------------------------------------------------------------")
+
     self.opt.set_value(self.x_des, x_des_num) # Substitution desired state
     
 
@@ -194,7 +206,7 @@ class MPC:
     self.yaw_start = x_des_num[3:6,0]
 
     self.x = sol.value(self.X[:,1])
-    self.u = sol.value(self.U[:,0]) #forces
+    self.u = -sol.value(self.U[:,0]) #forces
 
     #self.opt.set_initial(self.U, sol.value(self.U))
     self.opt.set_initial(self.X, sol.value(self.X))
@@ -206,6 +218,8 @@ class MPC:
       'HR_FOOT' : self.u[9:12],
     }
 
+    print(forces)
+    print()
     return forces
   
 #  def generate_moving_constraint(self, t):

@@ -26,6 +26,12 @@ class SingleLegController():
         
         forces = self.mpc.solve(t)
 
+        #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
+        #          'FR_FOOT' : [0.0, 0.0, -60.0],
+        #          'HL_FOOT' : [0.0, 0.0, -60.0],
+        #          'HR_FOOT' : [0.0, 0.0, -60.0],
+        #           }
+
         J = {
             'FL_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
             'FR_FOOT' : self.lite3.getLinearJacobian(self.lite3_controller.fr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,9:12],
