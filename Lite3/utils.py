@@ -38,6 +38,91 @@ def block_diag(*arrays):
 
     return block_matrix
 
+
+def log_status(lite3, time, to_file):
+    state = lite3.retrieve_state()
+
+    status = {
+        'FL_FOOT': {'pos': state['FL_FOOT']['pos'][3:]},
+        'HL_FOOT': {'pos': state['HL_FOOT']['pos'][3:]},
+        'FR_FOOT': {'pos': state['FR_FOOT']['pos'][3:]},
+        'HR_FOOT': {'pos': state['HR_FOOT']['pos'][3:]},
+        'com': {'pos': state['com']['pos']}
+    }
+
+    log_text = "\n=== STATUS ===\n"
+    log_text += f"Current time: {np.round(time, 3)}\n"  # Aggiungi il time corrente
+
+    for key, value in status.items():
+        pos = value['pos']
+        log_text += f"{key} position: {np.round(pos, 3)}\n"
+
+    step_index = lite3.footstep_planner.get_step_index_at_time(time)
+    start_time = lite3.footstep_planner.get_start_time(step_index) if step_index is not None else None
+    current_phase = lite3.footstep_planner.get_phase_at_time(time) if step_index is not None else None
+
+    log_text += "\n=== PLAN INFO ===\n"
+    log_text += f"Current step index: {step_index}\n"
+    log_text += f"Start time of current step: {start_time}\n"
+    log_text += f"Current feet target: {current_phase}\n"
+    log_text += "==================\n"
+
+    if to_file:
+        with open('log_status.txt', 'a') as f:
+            f.write(log_text) 
+        print(f"Current time: {np.round(time, 3)}\n")
+        print("Log scritto su file 'log_status.txt'.")
+    else:
+        print(log_text)
+
+
+def log_mpc(mpc_class, t, x_des_num, swing_inverted, forces):
+    if not hasattr(mpc_class, "first_write"):
+      mpc_class.first_write = True
+
+    if mpc_class.first_write:
+        mode = "w"
+        mpc_class.first_write = False
+    else:
+        mode = "a"  
+
+    labels = [
+        "roll ", "pitch", "yaw  ",
+        "CoM_x", "CoM_y", "CoM_z",
+        "ang_x", "ang_y", "ang_z",
+        "lin_x", "lin_y", "lin_z",
+        "grav "
+    ]
+
+    with open("x_des_log.txt", mode) as file:
+        file.write(f"Step t = {t}\n")
+        file.write("x_des_num:\n")
+        
+        for idx, row in enumerate(x_des_num):
+            label = labels[idx] if idx < len(labels) else f"row_{idx}"
+            file.write(f"{label}: ")
+            np.savetxt(file, row.reshape(1, -1), fmt="% .4f", delimiter='  ', newline="")
+            file.write("\n")
+
+        #file.write("\nswing_inverted:\n")
+        for idx, row in enumerate(swing_inverted):
+            foot_label = ["FL", "FR", "HL", "HR"][idx]  # Etichette dei piedi
+            #file.write(f"{foot_label}: ")
+            #np.savetxt(file, row.reshape(1, -1), fmt="% .0f", delimiter='  ', newline="")
+            #file.write("\n")
+            
+        file.write("\nforces:\n")
+        for foot, force in forces.items():
+            file.write(f"{foot}: {force.tolist()}\n")  # converto numpy array in lista leggibile
+
+        
+        fz_total = mpc_class.u[2] + mpc_class.u[5] + mpc_class.u[8] + mpc_class.u[11]
+
+        file.write(f"\nExpected total vertical force: {mpc_class.m * mpc_class.params['g']}")
+        file.write(f"\nTotal fz applied: {fz_total:.2f}")
+        file.write("\n" + "-"*50 + "\n")
+
+
 # solves a constrained QP with casadi
 class QPSolver:
     def __init__(self, n_vars, n_eq_constraints=0, n_ineq_constraints=0):
