@@ -26,7 +26,24 @@ class FootstepPlanner:
         total_steps = 10
         for j in range(total_steps):
             # set step duration
-            
+            pos = {
+                'FL_FOOT' : fl_foot,
+                'FR_FOOT' : fr_foot,
+                'HL_FOOT' : hl_foot,
+                'HR_FOOT' : hr_foot
+            }
+
+            ang = unicycle_theta 
+
+            self.plan.append({
+                    'pos'        : pos,
+                    'ang'        : ang,
+                    'ss_duration': default_ss_duration,
+                    'ds_duration': default_ds_duration,
+                    'feet_id'    : [1,1,1,1]
+                    })
+            continue
+
             ss_duration = default_ss_duration
             ds_duration = default_ds_duration
 
@@ -125,7 +142,7 @@ class FootstepPlanner:
                         "hip":[
                             unicycle_pos[0], 
                             unicycle_pos[1],
-                            params['h']  
+                            params['h']  #check
                         ],
 
                         "ang": unicycle_theta  
@@ -182,13 +199,13 @@ class FootstepPlanner:
                     'ang'        : ang,
                     'ss_duration': ss_duration,
                     'ds_duration': ds_duration,
-                    'feet_id'    : [1,1,1,1]#support_foot
+                    'feet_id'    : support_foot
                     })
             
             # switch support foot
             if j > 0:
                 support_foot = np.array([1,1,1,1]) - support_foot
-
+        '''
         x_hl_foot = [step['pos']["HL_FOOT"][0] for step in self.plan ]
         y_hl_foot = [step['pos']["HL_FOOT"][1] for step in self.plan ]
 
@@ -203,6 +220,7 @@ class FootstepPlanner:
 
         x_hip = [step['pos']["hip"][0] for step in self.plan ]
         y_hip = [step['pos']["hip"][1] for step in self.plan ]
+        '''
 
         #print("x_hl_foot:\t", [round(x, 2) for x in x_hl_foot])
         #print("x_hr_foot:\t", [round(x, 2) for x in x_hr_foot])

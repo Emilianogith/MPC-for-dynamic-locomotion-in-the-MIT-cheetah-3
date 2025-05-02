@@ -19,8 +19,6 @@ class MPC:
     self.com_pos_start = initial['com_position']
     self.yaw_start = initial['yaw']
 
-    print(self.com_pos_start)
-
     # optimization problem
     self.opt = cs.Opti('conic')
     p_opts = {"expand": True}
@@ -46,7 +44,7 @@ class MPC:
     self.m = 12.72
 
     I_body_inv = MX.zeros(3,3)
-    I_body_inv[0,0] = 1/1
+    I_body_inv[0,0] = 1/0.24
     I_body_inv[1,1] = 1/1
     I_body_inv[2,2] = 1/1
 
@@ -59,10 +57,10 @@ class MPC:
     #self.r3 = self.opt.parameter(3)
     #self.r4 = self.opt.parameter(3)
 
-    self.r1_skew = self.opt.parameter(3,3) #compute_skew(self.r1)
-    self.r2_skew = self.opt.parameter(3,3) #compute_skew(self.r2)
-    self.r3_skew = self.opt.parameter(3,3) #compute_skew(self.r3)
-    self.r4_skew = self.opt.parameter(3,3) #compute_skew(self.r4)
+    self.r1_skew = self.opt.parameter(3,self.N*3) #compute_skew(self.r1)
+    self.r2_skew = self.opt.parameter(3,self.N*3) #compute_skew(self.r2)
+    self.r3_skew = self.opt.parameter(3,self.N*3) #compute_skew(self.r3)
+    self.r4_skew = self.opt.parameter(3,self.N*3) #compute_skew(self.r4)
 
 
     # Dynamic model: A
@@ -77,30 +75,33 @@ class MPC:
     A_row5 = MX.zeros(1, 13)
     self.A = vertcat(A_row1, A_row2, A_row3, A_row4, A_row5)
 
-    # Dynamic model: A
-    B_row1 = horzcat(Z3, Z3, Z3, Z3)
-    B_row2 = horzcat(Z3, Z3, Z3, Z3)
-    B_row3 = horzcat(I_hat_inv@self.r1_skew, I_hat_inv@self.r2_skew, I_hat_inv@self.r3_skew, I_hat_inv@self.r4_skew)
-    B_row4 = horzcat(I3 /self.m, I3 /self.m, I3 /self.m, I3 /self.m)
-    B_row5 = MX.zeros(1, 12)
-    self.B = vertcat(B_row1, B_row2, B_row3, B_row4, B_row5)
+    # Dynamic model: B
+    self.B = MX.zeros(13,self.N*12)
+    for i in range(self.N):
+      B_row1 = horzcat(Z3, Z3, Z3, Z3)
+      B_row2 = horzcat(Z3, Z3, Z3, Z3)
+      B_row3 = horzcat(I_hat_inv@self.r1_skew[:,3*i:3*(1+i)], I_hat_inv@self.r2_skew[:,3*i:3*(1+i)], I_hat_inv@self.r3_skew[:,3*i:3*(1+i)], I_hat_inv@self.r4_skew[:,3*i:3*(1+i)])
+      B_row4 = horzcat(I3 /self.m, I3 /self.m, I3 /self.m, I3 /self.m)
+      B_row5 = MX.zeros(1, 12)
+      B_0 = vertcat(B_row1, B_row2, B_row3, B_row4, B_row5)
+      self.B[:,12*i:12*(1+i)] = B_0
 
 
     ## TODO: dynamics 
-    self.f = lambda x, u: self.A @ x + self.B @ u
+    self.f = lambda x, u, i: self.A @ x + self.B[:,12*i:12*(1+i)] @ u
   
     # State constraint (19)
     for i in range(self.N):
-      self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i]))
-
+      self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i],i))
+      
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
-    cost = 0.01* cs.sumsqr(self.U) + \
-           10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
-           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
-           cs.sumsqr(self.X[12, :] - self.x_des[12, :])
+    cost = 0 * cs.sumsqr(self.U) + \
+           1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           1 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
+           1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
 
     self.opt.minimize(cost)
 
@@ -122,6 +123,8 @@ class MPC:
     f_max = 666
     mu = 0.4 
     for i in range(self.N):
+
+      self.opt.subject_to( self.X[12,i] == self.params['g']) 
       # (22)
       for j in range(2, 12, 3):
         self.opt.subject_to( f_min <= self.U[j, i] )
@@ -142,8 +145,9 @@ class MPC:
 
         self.opt.subject_to( -mu*self.U[j+2,i] <= -self.U[j, i] )
         self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+2,i]  )
-      
+
   def solve(self, t):
+    
     
     #---------------------- Retreive state ----------------------  
     # ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
@@ -155,13 +159,15 @@ class MPC:
     state_g   = self.params['g']
 
     self.x = np.vstack([state_rpy, state_com, state_av, state_lv, state_g])
+
+
     #---------------------- Parameter substitutions ----------------------
     r1_skew_num = compute_skew( current_state['FL_FOOT']['pos'][3:] - current_state['com']['pos'] )
     r2_skew_num = compute_skew( current_state['FR_FOOT']['pos'][3:] - current_state['com']['pos'] )
     r3_skew_num = compute_skew( current_state['HL_FOOT']['pos'][3:] - current_state['com']['pos'] )
     r4_skew_num = compute_skew( current_state['HR_FOOT']['pos'][3:] - current_state['com']['pos'] )
 
-    self.opt.set_value(self.x0_param, self.x) # Substitution initial state
+    self.opt.set_value(self.x0_param, self.x)      # Substitution initial state
     self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
     self.opt.set_value(self.r2_skew, r2_skew_num ) # Substitution for matrix B
     self.opt.set_value(self.r3_skew, r3_skew_num ) # Substitution for matrix B
@@ -191,9 +197,6 @@ class MPC:
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + self.params['v_com_ref']*self.delta # Integrating com_pos
     
-    print(x_des_num[:,0])
-
-    print(x_des_num[:,10])
     
     print("------------------------------------------------------------------------------------------------")
 
@@ -209,7 +212,7 @@ class MPC:
     self.x = sol.value(self.X[:,1])
     self.u = sol.value(self.U[:,0]) #forces
 
-    #self.opt.set_initial(self.U, sol.value(self.U))
+    self.opt.set_initial(self.U, sol.value(self.U))
     self.opt.set_initial(self.X, sol.value(self.X))
 
     forces = {
@@ -219,21 +222,25 @@ class MPC:
       'HR_FOOT' : self.u[9:12],
     }
 
-    print(forces)
+    forces_z = {
+      'FL_FOOT' : self.u[2],
+      'FR_FOOT' : self.u[5],
+      'HL_FOOT' : self.u[8],
+      'HR_FOOT' : self.u[11],
+    }
+    if t % 10 == 0 or t == 0:
+      log_mpc(self, t, x_des_num, swing_inverted, forces)
+
+    print('FORZE Z')
+    print(forces_z)
     print()
-    return forces
+    print('x_des[1]')
+    print(x_des_num[:,1])
+    print()
+    print('x')
+    print(self.x)
+    print()
+    print('state_com')
+    print(state_com)
+    return forces 
   
-#  def generate_moving_constraint(self, t):
-#    mc_x = np.full(self.N, (self.initial['lfoot']['pos'][3] + self.initial['rfoot']['pos'][3]) / 2.)
-#    mc_y = np.full(self.N, (self.initial['lfoot']['pos'][4] + self.initial['rfoot']['pos'][4]) / 2.)
-#    time_array = np.array(range(t, t + self.N))
-#    for j in range(len(self.footstep_planner.plan) - 1):
-#      fs_start_time = self.footstep_planner.get_start_time(j)
-#      ds_start_time = fs_start_time + self.footstep_planner.plan[j]['ss_duration']
-#      fs_end_time = ds_start_time + self.footstep_planner.plan[j]['ds_duration']
-#      fs_current_pos = self.footstep_planner.plan[j]['pos'] if j > 0 else np.array([mc_x[0], mc_y[0]])
-#      fs_target_pos = self.footstep_planner.plan[j + 1]['pos']
-#      mc_x += self.sigma(time_array, ds_start_time, fs_end_time) * (fs_target_pos[0] - fs_current_pos[0])
-#      mc_y += self.sigma(time_array, ds_start_time, fs_end_time) * (fs_target_pos[1] - fs_current_pos[1])
-#
-#    return mc_x, mc_y, np.zeros(self.N)

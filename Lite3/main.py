@@ -9,27 +9,27 @@ from single_leg_controller import SingleLegController
 
 
 class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
-    def __init__(self, world, lite3):
+    def __init__(self, world, ground, lite3):
         super(Lite3Controller, self).__init__(world)
         self.world = world
         self.lite3 = lite3
         self.time = 0
+        self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.1,
+            'h': 0.3,
             'foot_size': 0.1,   #non serve
             'step_height': 0.01,
             'ss_duration': 70,
             'ds_duration': 30,
             'world_time_step': world.getTimeStep(), # 0.01
-            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
+            'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.5,
-            'N': 50,
+            'N': 100,
             'dof': self.lite3.getNumDofs(), # 18
             'v_com_ref' : np.array([0.0,0,0]),
             'theta_dot' : 0.0
         }
-        #self.params['eta'] = np.sqrt(self.params['g'] / self.params['h'])
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
         self.fr_sole = lite3.getBodyNode('FR_FOOT')
@@ -175,6 +175,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         self.time +=1
         print(f"Current time: {self.time}")
+
+        state = self.retrieve_state()
+
+        #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
+        #        color= [255, 0, 255], print_bodieds_of_the_object=False)
         return
         
     def retrieve_state(self):
@@ -280,10 +285,12 @@ if __name__ == "__main__":
     print("MASSA TOTALE:")
     print(total_mass)
 
-    node = Lite3Controller(world, lite3)
+    node = Lite3Controller(world, ground, lite3)
     world.setGravity([0, 0, node.params['g']])
     
     display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5],
+                color= [255, 255, 255], print_bodieds_of_the_object=False)
+    display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5+0.2],
                 color= [255, 255, 255], print_bodieds_of_the_object=False)
     # display_marker(ground, 'ground_link', position_in_world_coords=[0.1,0,0.5],
     #             color= [0, 255, 0], print_bodieds_of_the_object=False)
@@ -291,6 +298,7 @@ if __name__ == "__main__":
     #             color= [255, 0, 0], print_bodieds_of_the_object=False)
     # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.6],
     #             color= [0, 0, 255], print_bodieds_of_the_object=False)
+    #<mesh filename="../meshes/Lite3.dae" /> 
     
     for step in node.footstep_planner.plan:
         x_hl_foot = step['pos']["HL_FOOT"][0]
