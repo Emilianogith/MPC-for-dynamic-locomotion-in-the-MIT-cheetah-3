@@ -236,7 +236,7 @@ def plot_com_and_forces(N, com_position, com_desired, forces):
         forces: 4xN.
     """
 
-    time = np.linspace(0, 10, N)
+    time = np.linspace(0, N, N)
 
     fig, axs = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
     

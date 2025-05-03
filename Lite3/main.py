@@ -17,7 +17,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.4,
+            'h': 0.28,
             'foot_size': 0.1,   #non serve
             'step_height': 0.01,
             'ss_duration': 70,
@@ -25,7 +25,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'world_time_step': world.getTimeStep(), # 0.01
             'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
             'µ': 0.5,
-            'N': 30,
+            'N':100 ,
             'dof': self.lite3.getNumDofs(), # 18
             'v_com_ref' : np.array([0.0,0,0]),
             'theta_dot' : 0.0
@@ -46,7 +46,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             elif dim == 1: joint.setActuatorType(dart.dynamics.ActuatorType.FORCE)
 
         # set initial configuration
-        initial_configuration = {   'FL_HipX': 0.,    'FL_HipY': 0.,     'FL_Knee': 0,    \
+        initial_configuration = {   'FL_HipX': 0.,    'FL_HipY': 0.,     'FL_Knee': 0.,    \
                                     'FR_HipX': 0.,    'FR_HipY': 0.,     'FR_Knee': 0.,   \
                                     'HL_HipX': 0.,    'HL_HipY': 0.,     'HL_Knee': 0.,    \
                                     'HR_HipX': 0.,    'HR_HipY': 0.,     'HR_Knee': 0.}#, "fixed": 0.}
@@ -57,7 +57,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         for joint_name, value in initial_configuration.items():
             self.lite3.setPosition(self.lite3.getDof(joint_name).getIndexInSkeleton(), value * np.pi / 180.)
-
         self.lite3.setPosition(5, 0.43)
 
         initial_state = self.retrieve_state()

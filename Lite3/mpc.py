@@ -102,13 +102,14 @@ class MPC:
       
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
-    cost = 0.0001 * cs.sumsqr(self.U) + \
+    cost = 0 * cs.sumsqr(self.U) + \
            10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
+           500 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           500 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
            10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
-
+          #(0 10 500 500 10 10 0)
     self.opt.minimize(cost)
 
     # initial state constraint
@@ -182,7 +183,6 @@ class MPC:
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + self.params['v_com_ref']*self.delta # Integrating com_pos
-
     #---------------------- Parameter substitutions ----------------------
 
     r1_skew_num = np.zeros((3,self.N*3))
@@ -204,10 +204,11 @@ class MPC:
       r4_skew_num[:,3*i:3*(1+i)] = compute_skew(r4_num)
 
       future_t = t+i+1
-      r1_num = self.update_r_num(future_t,'FL_FOOT',x_des_num[3:6, i+1])
-      r2_num = self.update_r_num(future_t,'FR_FOOT',x_des_num[3:6, i+1])
-      r3_num = self.update_r_num(future_t,'HL_FOOT',x_des_num[3:6, i+1])
-      r4_num = self.update_r_num(future_t,'FR_FOOT',x_des_num[3:6, i+1])
+      r1_num = self.update_r_num(future_t,'FL_FOOT',x_des_num[3:6,i+1])
+      r2_num = self.update_r_num(future_t,'FR_FOOT',x_des_num[3:6,i+1])
+      r3_num = self.update_r_num(future_t,'HL_FOOT',x_des_num[3:6,i+1])
+      r4_num = self.update_r_num(future_t,'HR_FOOT',x_des_num[3:6,i+1])
+      #print(r1_num)
 
     self.opt.set_value(self.x0_param, self.x)      # Substitution initial state
     self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
@@ -278,28 +279,27 @@ class MPC:
     #print('state_com')
     #print(state_com)
   
-    if t == 10:
-      print(self.x_plot[:,:self.N])
+    if t == 500:
+      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    if t == 899:
       plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
 
     return forces
   
   def update_r_num(self, time, leg_name, next_com):
     gait = self.footstep_planner.get_phase_at_time(time)
-    #print(gait)
-    current_state = self.lite3.retrieve_state()
-    pos=current_state[leg_name]['pos'][3:]
-    pos_com=current_state['com']['pos']
+    #current_state = self.lite3.retrieve_state()
+    #pos=current_state[leg_name]['pos'][3:]
+    #pos_com=current_state['com']['pos']
 
     if self.footstep_planner.is_swing(leg_name,gait) == 1:
-      print('TOTTI PRINT')
       leg_pos = self.trajectory_generator.generate_feet_trajectories_at_time(time, leg_name)
       leg_pos = leg_pos['pos'][3:]
       r_num = leg_pos - next_com
       return r_num
     else:
-      
       step = self.footstep_planner.get_step_index_at_time(time)
+      #print(step)
       leg_pos = self.footstep_planner.plan[step]['pos'][leg_name]
       #print(leg_name)
       #print(leg_pos)
@@ -307,4 +307,7 @@ class MPC:
       r_num = leg_pos - next_com
       #print('r_num')
       #print(r_num)
+      #print()
+      #print('next_com')
+      #print(next_com)
       return r_num

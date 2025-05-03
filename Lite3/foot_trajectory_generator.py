@@ -62,7 +62,7 @@ class FootTrajectoryGenerator:
             'acc': np.hstack((swing_ang_acc, swing_acc))
         }
         print('--------------------------------------------------------------')
-        print(swing_data['pos'])
+        #print(swing_data['pos'])
         return swing_data
     
 

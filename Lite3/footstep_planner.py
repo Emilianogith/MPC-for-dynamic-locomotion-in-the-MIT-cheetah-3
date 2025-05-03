@@ -197,7 +197,7 @@ class FootstepPlanner:
                     'ang'        : ang,
                     'ss_duration': ss_duration,
                     'ds_duration': ds_duration,
-                    'feet_id'    : [1,1,1,1] #support_foot
+                    'feet_id'    : support_foot
                     })
             
             # switch support foot

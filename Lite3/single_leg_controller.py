@@ -25,6 +25,7 @@ class SingleLegController():
     def ground_controller(self, t): #forces will be determined by the MPC
         
         forces = self.mpc.solve(t)
+
         
         #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
         #          'FR_FOOT' : [0.0, 0.0, -60.0],
