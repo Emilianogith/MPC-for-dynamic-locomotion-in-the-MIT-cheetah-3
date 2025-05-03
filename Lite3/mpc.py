@@ -3,6 +3,7 @@ import casadi as cs
 from casadi import SX, MX, cos, sin, vertcat, horzcat
 from utils import *
 #from math import sin,cos
+from foot_trajectory_generator import FootTrajectoryGenerator
 
 class MPC:
   def __init__(self, lite3, initial, footstep_planner, params):
@@ -18,6 +19,11 @@ class MPC:
     #self.sigma = lambda t, t0, t1: np.clip((t - t0) / (t1 - t0), 0, 1) # piecewise linear sigmoidal function
     self.com_pos_start = initial['com_position']
     self.yaw_start = initial['yaw']
+
+    self.trajectory_generator = FootTrajectoryGenerator(
+            footstep_planner = self.footstep_planner,
+            params = self.params
+        )
 
     # optimization problem
     self.opt = cs.Opti('conic')
@@ -96,11 +102,11 @@ class MPC:
       
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
-    cost = 0 * cs.sumsqr(self.U) + \
-           1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           1 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
-           1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+    cost = 0.01 * cs.sumsqr(self.U) + \
+           10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
+           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
 
     self.opt.minimize(cost)
@@ -161,27 +167,7 @@ class MPC:
     self.x = np.vstack([state_rpy, state_com, state_av, state_lv, state_g])
 
 
-    #---------------------- Parameter substitutions ----------------------
-    r1_skew_num = compute_skew( current_state['FL_FOOT']['pos'][3:] - current_state['com']['pos'] )
-    r2_skew_num = compute_skew( current_state['FR_FOOT']['pos'][3:] - current_state['com']['pos'] )
-    r3_skew_num = compute_skew( current_state['HL_FOOT']['pos'][3:] - current_state['com']['pos'] )
-    r4_skew_num = compute_skew( current_state['HR_FOOT']['pos'][3:] - current_state['com']['pos'] )
-
-    self.opt.set_value(self.x0_param, self.x)      # Substitution initial state
-    self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
-    self.opt.set_value(self.r2_skew, r2_skew_num ) # Substitution for matrix B
-    self.opt.set_value(self.r3_skew, r3_skew_num ) # Substitution for matrix B
-    self.opt.set_value(self.r4_skew, r4_skew_num ) # Substitution for matrix B
-    
-    # Equality constraint (21): 
-    swing_inverted = np.zeros((4, self.N))
-    for i in range(self.N): 
-      swing_value = self.footstep_planner.get_phase_at_time(t+i)
-      swing_inverted[:, i] = np.array([1, 1, 1, 1]) - np.array(swing_value)
-    
-    self.opt.set_value(self.swing_param, swing_inverted)
-
-    # Cost function: x_des value for com (18)
+    #---------------------- x_des definition ----------------------
     # x_des: ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
     # setting constant values
     x_des_num = np.zeros((13, self.N+1))
@@ -196,6 +182,46 @@ class MPC:
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + self.params['v_com_ref']*self.delta # Integrating com_pos
+
+    #---------------------- Parameter substitutions ----------------------
+
+    r1_skew_num = np.zeros((3,self.N*3))
+    r2_skew_num = np.zeros((3,self.N*3))
+    r3_skew_num = np.zeros((3,self.N*3))
+    r4_skew_num = np.zeros((3,self.N*3))
+
+    r1_num = current_state['FL_FOOT']['pos'][3:] - current_state['com']['pos']
+    r2_num = current_state['FR_FOOT']['pos'][3:] - current_state['com']['pos']
+    r3_num = current_state['HL_FOOT']['pos'][3:] - current_state['com']['pos']
+    r4_num = current_state['HR_FOOT']['pos'][3:] - current_state['com']['pos']
+    #print('------R1_NUM----------------------------')
+    #print(r1_num)
+    for i in range(self.N):
+        
+      r1_skew_num[:,3*i:3*(1+i)] = compute_skew(r1_num)
+      r2_skew_num[:,3*i:3*(1+i)] = compute_skew(r2_num)
+      r3_skew_num[:,3*i:3*(1+i)] = compute_skew(r3_num)
+      r4_skew_num[:,3*i:3*(1+i)] = compute_skew(r4_num)
+
+      future_t = t+i+1
+      r1_num = self.update_r_num(future_t,'FL_FOOT',x_des_num[3:6, i+1])
+      r2_num = self.update_r_num(future_t,'FR_FOOT',x_des_num[3:6, i+1])
+      r3_num = self.update_r_num(future_t,'HL_FOOT',x_des_num[3:6, i+1])
+      r4_num = self.update_r_num(future_t,'FR_FOOT',x_des_num[3:6, i+1])
+
+    self.opt.set_value(self.x0_param, self.x)      # Substitution initial state
+    self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
+    self.opt.set_value(self.r2_skew, r2_skew_num ) # Substitution for matrix B
+    self.opt.set_value(self.r3_skew, r3_skew_num ) # Substitution for matrix B
+    self.opt.set_value(self.r4_skew, r4_skew_num ) # Substitution for matrix B
+    
+    # Equality constraint (21): 
+    swing_inverted = np.zeros((4, self.N))
+    for i in range(self.N): 
+      swing_value = self.footstep_planner.get_phase_at_time(t+i)
+      swing_inverted[:, i] = np.array([1, 1, 1, 1]) - np.array(swing_value)
+    
+    self.opt.set_value(self.swing_param, swing_inverted)
     
     
     print("------------------------------------------------------------------------------------------------")
@@ -244,3 +270,27 @@ class MPC:
     print(state_com)
     return forces 
   
+  def update_r_num(self, time, leg_name, next_com):
+    gait = self.footstep_planner.get_phase_at_time(time)
+    print(gait)
+    current_state = self.lite3.retrieve_state()
+    pos=current_state[leg_name]['pos'][3:]
+    pos_com=current_state['com']['pos']
+
+    if self.footstep_planner.is_swing(leg_name,gait) == 1:
+      print('TOTTI PRINT')
+      leg_pos = self.trajectory_generator.generate_feet_trajectories_at_time(time, leg_name)
+      leg_pos = leg_pos['pos'][3:]
+      r_num = leg_pos - next_com
+      return r_num
+    else:
+      
+      step = self.footstep_planner.get_step_index_at_time(time)
+      leg_pos = self.footstep_planner.plan[step]['pos'][leg_name]
+      #print(leg_name)
+      #print(leg_pos)
+      #print()
+      r_num = leg_pos - next_com
+      print('r_num')
+      print(r_num)
+      return r_num
