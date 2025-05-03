@@ -25,7 +25,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'world_time_step': world.getTimeStep(), # 0.01
             'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
             'µ': 0.5,
-            'N': 50,
+            'N': 30,
             'dof': self.lite3.getNumDofs(), # 18
             'v_com_ref' : np.array([0.0,0,0]),
             'theta_dot' : 0.0
@@ -69,7 +69,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.pitch       = initial_state['TORSO']['pos'][1] 
         self.yaw         = initial_state['TORSO']['pos'][2] 
         self.com_pos     = initial_state['com']['pos']
-        print(self.com_pos)
+        #print(self.com_pos)
         self.initial = {
             'FL_FOOT' : self.fl_sole_pos,
             'FR_FOOT' : self.fr_sole_pos,
@@ -131,6 +131,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             #print(foot_forces)
             
         #Test value for controls
+        
         foot_forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
                        'FR_FOOT' : [0.0, 0.0, -60.0],
                        'HL_FOOT' : [0.0, 0.0, -60.0],
@@ -159,13 +160,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         step_index = self.footstep_planner.get_step_index_at_time(self.time)
         gait = self.footstep_planner.plan[step_index]['feet_id']
     
+        #j=0
+        #for leg_name in tasks:
+        #    if gait[j] == 1:
+        #        tau_curr = self.leg_controller.ground_controller(leg_name, self.time)
+        #    else:
+        #        tau_curr = self.leg_controller.swing_leg_controller(leg_name)
+        #    tau[leg_name] = tau_curr
+        #    j+=1
+        tau_ground = self.leg_controller.ground_controller(self.time)
         j=0
         for leg_name in tasks:
             if gait[j] == 1:
-                tau_curr = self.leg_controller.ground_controller(leg_name, self.time)
+                tau[leg_name] = tau_ground[leg_name]
             else:
-                tau_curr = self.leg_controller.swing_leg_controller(leg_name)
-            tau[leg_name] = tau_curr
+                tau[leg_name] = self.leg_controller.swing_leg_controller(leg_name)
             j+=1
         #print(tau)
         for task,value in joint_name.items():
@@ -177,7 +186,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         print(f"Current time: {self.time}")
 
         state = self.retrieve_state()
-
+        #plot_com_and_forces(self.time, com_position, com_desired, forces)
         #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
         #        color= [255, 0, 255], print_bodieds_of_the_object=False)
         return
@@ -282,8 +291,8 @@ if __name__ == "__main__":
             body.setInertia(default_inertia)
         total_mass += body.getMass()
 
-    print("MASSA TOTALE:")
-    print(total_mass)
+    #print("MASSA TOTALE:")
+    #print(total_mass)
 
     node = Lite3Controller(world, ground, lite3)
     world.setGravity([0, 0, node.params['g']])

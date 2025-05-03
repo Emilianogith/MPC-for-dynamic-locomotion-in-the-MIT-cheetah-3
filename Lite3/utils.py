@@ -3,6 +3,7 @@ from scipy.spatial.transform import Rotation as R
 import numpy as np
 import dartpy as dart
 from casadi import MX, DM
+import matplotlib.pyplot as plt
 
 def rotation_vector_difference(rotvec_a, rotvec_b):
     R_a = R.from_rotvec(rotvec_a)
@@ -222,3 +223,41 @@ def display_marker(object, body_name, position_in_world_coords,
             else:
                 vis.setColor(color)
                 sphere_node.setRelativeTranslation(position_in_world_coords)
+
+
+def plot_com_and_forces(N, com_position, com_desired, forces):
+    """
+    Plots center of mass positions (actual vs desired) and forces over time.
+    
+    Parameters:
+        N
+        com_position: 3xN (x, y, z).
+        com_desired: 3xN (x, y, z).
+        forces: 4xN.
+    """
+
+    time = np.linspace(0, 10, N)
+
+    fig, axs = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+    
+    # Plot CoM actual vs desired
+    labels = ['x', 'y', 'z']
+    for i in range(3):
+        axs[0].plot(time, com_position[i, :], label=f'Actual {labels[i]}')
+        axs[0].plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
+    axs[0].set_ylabel("CoM Position (m)")
+    axs[0].set_title("Center of Mass (CoM) Position Over Time")
+    axs[0].legend()
+    axs[0].grid(True)
+
+    # Plot Forces
+    for i in range(forces.shape[0]):
+        axs[1].plot(time, forces[i, :], label=f'Force z {i+1}')
+    axs[1].set_xlabel("Time (s)")
+    axs[1].set_ylabel("Force (N)")
+    axs[1].set_title("Forces Over Time")
+    axs[1].legend()
+    axs[1].grid(True)
+
+    plt.tight_layout()
+    plt.show()

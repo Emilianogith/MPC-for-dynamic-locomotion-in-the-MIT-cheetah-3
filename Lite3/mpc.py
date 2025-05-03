@@ -102,7 +102,7 @@ class MPC:
       
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
-    cost = 0.01 * cs.sumsqr(self.U) + \
+    cost = 0.0001 * cs.sumsqr(self.U) + \
            10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
            100 * cs.sumsqr(self.X[3:6,  :] - self.x_des[3:6, :]) + \
            10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
@@ -236,7 +236,9 @@ class MPC:
     self.yaw_start = x_des_num[2,0]
 
     self.x = sol.value(self.X[:,1])
+    self.x_plot = sol.value(self.X[3:6,:])
     self.u = sol.value(self.U[:,0]) #forces
+    self.u_plot = sol.value(self.U[:,:]) #forces
 
     self.opt.set_initial(self.U, sol.value(self.U))
     self.opt.set_initial(self.X, sol.value(self.X))
@@ -248,31 +250,43 @@ class MPC:
       'HR_FOOT' : self.u[9:12],
     }
 
+    forces_plot = np.array([
+                            self.u_plot[2,:],
+                            self.u_plot[5,:],
+                            self.u_plot[8,:],
+                            self.u_plot[11,:],
+    ])
+
     forces_z = {
       'FL_FOOT' : self.u[2],
       'FR_FOOT' : self.u[5],
       'HL_FOOT' : self.u[8],
       'HR_FOOT' : self.u[11],
     }
-    if t % 10 == 0 or t == 0:
-      log_mpc(self, t, x_des_num, swing_inverted, forces)
+    #if t % 10 == 0 or t == 0:
+    #  log_mpc(self, t, x_des_num, swing_inverted, forces)
 
-    print('FORZE Z')
-    print(forces_z)
-    print()
-    print('x_des[1]')
-    print(x_des_num[:,1])
-    print()
-    print('x')
-    print(self.x)
-    print()
-    print('state_com')
-    print(state_com)
-    return forces 
+    #print('FORZE Z')
+    #print(forces_z)
+    #print()
+    #print('x_des[1]')
+    #print(x_des_num[:,1])
+    #print()
+    #print('x')
+    #print(self.x)
+    #print()
+    #print('state_com')
+    #print(state_com)
+  
+    if t == 10:
+      print(self.x_plot[:,:self.N])
+      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+
+    return forces
   
   def update_r_num(self, time, leg_name, next_com):
     gait = self.footstep_planner.get_phase_at_time(time)
-    print(gait)
+    #print(gait)
     current_state = self.lite3.retrieve_state()
     pos=current_state[leg_name]['pos'][3:]
     pos_com=current_state['com']['pos']
@@ -291,6 +305,6 @@ class MPC:
       #print(leg_pos)
       #print()
       r_num = leg_pos - next_com
-      print('r_num')
-      print(r_num)
+      #print('r_num')
+      #print(r_num)
       return r_num
