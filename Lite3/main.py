@@ -17,17 +17,17 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.28,
+            'h': 0.25,
             'foot_size': 0.1,   #non serve
-            'step_height': 0.01,
-            'ss_duration': 70,
-            'ds_duration': 30,
+            'step_height': 0.05,
+            'ss_duration': 80,
+            'ds_duration': 200,
             'world_time_step': world.getTimeStep(), # 0.01
-            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
+            'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.5,
-            'N':100 ,
+            'N':80,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.0,0,0]),
+            'v_com_ref' : np.array([0.1  ,0,0]),
             'theta_dot' : 0.0
         }
 

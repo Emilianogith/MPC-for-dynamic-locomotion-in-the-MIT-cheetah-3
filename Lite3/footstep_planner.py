@@ -23,24 +23,24 @@ class FootstepPlanner:
         R = np.array([[np.cos(initial_theta), - np.sin(initial_theta)],
                       [np.sin(initial_theta),   np.cos(initial_theta)]])
                     
-        total_steps = 10
+        total_steps = 50
         for j in range(total_steps):
            # set step duration
-            pos = {
-                'FL_FOOT' : fl_foot,
-                'FR_FOOT' : fr_foot,
-                'HL_FOOT' : hl_foot,
-                'HR_FOOT' : hr_foot
-            }
-            ang = unicycle_theta 
-            self.plan.append({
-                    'pos'        : pos,
-                    'ang'        : ang,
-                    'ss_duration': default_ss_duration,
-                    'ds_duration': default_ds_duration,
-                    'feet_id'    : [1,1,1,1]
-                    })
-            continue
+            #pos = {
+            #    'FL_FOOT' : fl_foot,
+            #    'FR_FOOT' : fr_foot,
+            #    'HL_FOOT' : hl_foot,
+            #    'HR_FOOT' : hr_foot
+            #}
+            #ang = unicycle_theta 
+            #self.plan.append({
+            #        'pos'        : pos,
+            #        'ang'        : ang,
+            #        'ss_duration': default_ss_duration,
+            #        'ds_duration': default_ds_duration,
+            #        'feet_id'    : [1,1,1,1]
+            #        })
+            #continue
 
             ss_duration = default_ss_duration
             ds_duration = default_ds_duration
