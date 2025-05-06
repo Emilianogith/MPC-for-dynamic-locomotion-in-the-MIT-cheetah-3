@@ -2,6 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt 
 
 class FootTrajectoryGenerator:
+    """Brief explanation of Trajectory generator ...
+     spiega i passi 
+
+
+     TO DO 
+
+
+    main methods:
+    - generate_feet_trajectories_at_time
+    - show_trajectory: plot the trajectory               .....
+
+    
+    """
+        
     def __init__(self, footstep_planner, params):
         self.dt = params['world_time_step']
         self.step_height = params['step_height']
@@ -27,11 +41,15 @@ class FootTrajectoryGenerator:
             }
 
         t = time_in_step
-        T = ss_duration
+        T = ss_duration 
         t_swing = 0.95*T
         t_stay = 0.05*T
 
+        print('t',t)
+
+    
         if t >= T:
+            print('AOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
             self.plan[step_index]['feet_id'] = [1,1,1,1]
             return {
                 'pos': np.hstack((start_ang, start_pos)),

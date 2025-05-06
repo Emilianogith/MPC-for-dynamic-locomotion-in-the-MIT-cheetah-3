@@ -9,6 +9,15 @@ from single_leg_controller import SingleLegController
 
 
 class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
+    """Brief description of the  controller for the Lite3 robot...
+
+    TO DO
+
+        main methods:
+        - CustomPreStep(): implements a customization of the simulation built-in method ...
+        - retrieve_state(): returns the current informations about the state from the simulation
+    """
+
     def __init__(self, world, ground, lite3):
         super(Lite3Controller, self).__init__(world)
         self.world = world
@@ -21,7 +30,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'foot_size': 0.1,   #non serve
             'step_height': 0.08,
             'ss_duration': 25,
-            'ds_duration': 100,
+            'ds_duration': 75,
             'world_time_step': world.getTimeStep(), # 0.01
             'first_swing': np.array([0,1,1,1]), #np.array([0,1,1,0]),
             'µ': 0.5,
@@ -57,6 +66,8 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         for joint_name, value in initial_configuration.items():
             self.lite3.setPosition(self.lite3.getDof(joint_name).getIndexInSkeleton(), value * np.pi / 180.)
+        
+        # Hand-tuned robot's spawning 
         #self.lite3.setPosition(5, 0.43)
         self.lite3.setPosition(5, 0.295)
 
@@ -69,7 +80,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.pitch       = initial_state['TORSO']['pos'][1] 
         self.yaw         = initial_state['TORSO']['pos'][2] 
         self.com_pos     = initial_state['com']['pos']
-        print(self.com_pos)
         self.initial = {
             'FL_FOOT' : self.fl_sole_pos,
             'FR_FOOT' : self.fr_sole_pos,
@@ -82,7 +92,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         }
 
         self.footstep_planner = FootstepPlanner(
-            vref = np.array([self.params['v_com_ref'][0], self.params['v_com_ref'][1], self.params['theta_dot']]),
+            vref = np.array([self.params['v_com_ref'][0], self.params['v_com_ref'][1], self.params['theta_dot']]), # quindi puo essere dedotta da params?
             initial_configuration = self.initial,
             leg_displacement_x = 0.010,
             params = self.params,
@@ -93,7 +103,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             params = self.params
         )
 
-        self.leg_controller = SingleLegController(
+        self.leg_controller = SingleLegController(           # EMILIANO: Propongo di togliere la classe Graund comntroller e  creare una funzione qui dentro, cosi evitiamo di passare lite3
             lite3 = self.lite3, 
             lite3_controller = self, 
             trajectory_generator =  self.trajectory_generator,
@@ -106,6 +116,8 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         #self.trajectory_generator.show_trajectory(foot_to_sample='FR_FOOT', t_start=0, t_end=800, string_axs='z')
 
     def customPreStep(self):
+        """ This method consists in the overwriting of the built-in method to run the simulation ..."""
+
         # print("-------------------------")
         # collision_result = self.world.getLastCollisionResult()
         # contacts = collision_result.getContacts()
@@ -130,13 +142,13 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
                 #print(contact.force)
             #print(foot_forces)
             
-        #Test value for controls
-        
-        foot_forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
-                       'FR_FOOT' : [0.0, 0.0, -60.0],
-                       'HL_FOOT' : [0.0, 0.0, -60.0],
-                       'HR_FOOT' : [0.0, 0.0, -20.0],
-                        }
+
+        # Test value for controls
+        # foot_forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
+        #                'FR_FOOT' : [0.0, 0.0, -60.0],
+        #                'HL_FOOT' : [0.0, 0.0, -60.0],
+        #                'HR_FOOT' : [0.0, 0.0, -20.0],
+        #                 }
         
         tau = { 'FL_FOOT' : [0, 0, 0],
                 'FR_FOOT' : [0, 0, 0],
@@ -152,14 +164,15 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         
         tasks = ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
 
-        for name,value in joint_name.items():
+        for name,value in joint_name.items():           # A CHE SERVE?
             self.dq[name][0] = self.lite3.getVelocity(self.lite3.getDof(value[0]).getIndexInSkeleton())
             self.dq[name][1] = self.lite3.getVelocity(self.lite3.getDof(value[1]).getIndexInSkeleton())
             self.dq[name][2] = self.lite3.getVelocity(self.lite3.getDof(value[2]).getIndexInSkeleton())
 
         step_index = self.footstep_planner.get_step_index_at_time(self.time)
         gait = self.footstep_planner.plan[step_index]['feet_id']
-    
+
+        # Test controller
         #j=0
         #for leg_name in tasks:
         #    if gait[j] == 1:
@@ -168,6 +181,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         #        tau_curr = self.leg_controller.swing_leg_controller(leg_name)
         #    tau[leg_name] = tau_curr
         #    j+=1
+
         tau_ground = self.leg_controller.ground_controller(self.time)
         j=0
         for leg_name in tasks:
@@ -177,6 +191,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
                 tau[leg_name] = self.leg_controller.swing_leg_controller(leg_name)
             j+=1
         #print(tau)
+
         for task,value in joint_name.items():
             lite3.setCommand(lite3.getDof(value[0]).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
             lite3.setCommand(lite3.getDof(value[1]).getIndexInSkeleton(), tau[task][1])
@@ -185,13 +200,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.time +=1
         print(f"Current time: {self.time}")
 
-        state = self.retrieve_state()
+        #state = self.retrieve_state()
         #plot_com_and_forces(self.time, com_position, com_desired, forces)
         #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
         #        color= [255, 0, 255], print_bodieds_of_the_object=False)
         return
         
     def retrieve_state(self):
+        """
+        Returns the current state information from the simulation, including:
+
+        - Feet: position, velocity, and acceleration
+        - Center of Mass (COM): position, velocity, and acceleration
+        - Torso: orientation and angular velocity
+        - Joint variables: positions and velocities
+        """
 
         com_position = self.lite3.getCOM()
         torso_orientation  = get_rotvec(self.lite3.getBodyNode('TORSO' ).getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).rotation())
@@ -251,17 +274,18 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
 
 if __name__ == "__main__":
+
+    # URDF files loading:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     urdf_path = os.path.join(current_dir, "lite3_urdf/Lite3/urdf", "Lite3.urdf")
     ground_path = os.path.join(current_dir, "lite3_urdf/Lite3/urdf", "ground.urdf")
     urdfParser = dart.utils.DartLoader()
 
-    # Controlla se il file URDF esiste
     if not os.path.exists(urdf_path):
         print(f"Errore: il file {urdf_path} non esiste!")
         exit(-1)
         
-    # Creazione del mondo e caricamento del robot
+    # Create the simulation world and load the robot model
     world = dart.simulation.World()
     lite3 = urdfParser.parseSkeleton(urdf_path)
     ground = urdfParser.parseSkeleton(ground_path)
@@ -269,45 +293,36 @@ if __name__ == "__main__":
     world.addSkeleton(ground)
     world.setTimeStep(0.01)
 
-
-    #print("world variable:")           #ma che è?
-    #print(dir(world))
-    #print("---\nlite3 variable:")
-    #print(dir(lite3))
-    #print("---\ngroun variable:")
-    #print(dir(ground))
               
     num_joints =lite3.getNumJoints()
-    
     inertia_matrix = lite3.getMassMatrix()[3:6]
 
     total_mass = 0
     # set default inertia
     default_inertia = dart.dynamics.Inertia(1e-8, np.zeros(3), 1e-10 * np.identity(3))
     for body in lite3.getBodyNodes():
-        #print(body.getName())
         if body.getMass() == 0.0:
             body.setMass(1e-8)
             body.setInertia(default_inertia)
         total_mass += body.getMass()
-
     #print("MASSA TOTALE:")
     #print(total_mass)
 
+    # Initialization of the main node
     node = Lite3Controller(world, ground, lite3)
     world.setGravity([0, 0, node.params['g']])
     
-    display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5],
-                color= [255, 255, 255], print_bodieds_of_the_object=False)
-    display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5+0.2],
-                color= [255, 255, 255], print_bodieds_of_the_object=False)
+
+    # Display some markers
+    # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5],
+    #             color= [255, 255, 255], print_bodieds_of_the_object=False)
+    # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5+0.2],
+    #             color= [255, 255, 255], print_bodieds_of_the_object=False)
     # display_marker(ground, 'ground_link', position_in_world_coords=[0.1,0,0.5],
     #             color= [0, 255, 0], print_bodieds_of_the_object=False)
     # display_marker(ground, 'ground_link', position_in_world_coords=[0,0.1,0.5],
     #             color= [255, 0, 0], print_bodieds_of_the_object=False)
     # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.6],
-    #             color= [0, 0, 255], print_bodieds_of_the_object=False)
-    #<mesh filename="../meshes/Lite3.dae" /> 
     
     for step in node.footstep_planner.plan:
         x_hl_foot = step['pos']["HL_FOOT"][0]
@@ -340,7 +355,5 @@ if __name__ == "__main__":
     viewer.setCameraHomePosition([5., -1., 1.5],
                                 [1.,  0., 0.5],
                                 [0.,  0., 1. ])
-
     
-
     viewer.run()

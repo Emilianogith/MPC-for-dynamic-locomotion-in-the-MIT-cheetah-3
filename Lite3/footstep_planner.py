@@ -3,8 +3,26 @@ from utils import *
 import matplotlib.pyplot as plt
 
 class FootstepPlanner:
+    """Brief explanation of Footstep planner in the init it is planned ...
+     spiega i passi 
+
+
+     TO DO 
+
+     1->piede in movimento
+     0->piede fermo non lo so 
+
+    main methods:
+    - get_step_index_at_time
+    - get_start_time
+    - get_phase_at_time
+    - is_swing                    .....
+
+    
+    """
+
     def __init__(self, vref, initial_configuration, leg_displacement_x, params):
-        default_ss_duration = params['ss_duration']
+        default_ss_duration = params['ss_duration']                 #vref puo essere dedotta da params
         default_ds_duration = params['ds_duration']
 
         fl_foot = initial_configuration['FL_FOOT']
@@ -23,7 +41,7 @@ class FootstepPlanner:
         R = np.array([[np.cos(initial_theta), - np.sin(initial_theta)],
                       [np.sin(initial_theta),   np.cos(initial_theta)]])
                     
-        total_steps = 9
+        total_steps = 9          # EMILIANO: possiamo renderlo un parametro?
         for j in range(total_steps):
            # set step duration
             #pos = {
@@ -177,7 +195,7 @@ class FootstepPlanner:
                             params['h'] 
                         ],
 
-                        "ang": unicycle_theta  
+                        "ang": unicycle_theta  # è ridondante?
                     }
             
             ang = np.array((0., 0., unicycle_theta))
@@ -226,7 +244,9 @@ class FootstepPlanner:
         #print("x_fr_foot:\t", [round(x, 2) for x in x_fr_foot])
         #print("x_hip:\t\t", [round(x, 2) for x in x_hip])
 
-        '''
+
+        #EMILIANO: possiamo creare una funzione per questo
+        ''' 
         plt.figure(figsize=(8, 6))  
 
         for i in range(len(x_hip)):

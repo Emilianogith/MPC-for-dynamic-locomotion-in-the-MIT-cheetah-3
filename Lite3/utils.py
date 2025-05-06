@@ -179,6 +179,25 @@ class QPSolver:
             x_sol = np.zeros(self.n_vars)
         return x_sol
     
+
+
+
+
+
+
+
+
+
+#direi di togliere quelli che non usiamo di scianca
+
+
+
+
+
+
+
+
+
 def compute_skew(vector):
   v1 = vector[0]
   v2 = vector[1]
