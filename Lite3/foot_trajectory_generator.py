@@ -28,6 +28,8 @@ class FootTrajectoryGenerator:
 
         t = time_in_step
         T = ss_duration
+        t_swing = 0.95*T
+        t_stay = 0.05*T
 
         if t >= T:
             self.plan[step_index]['feet_id'] = [1,1,1,1]

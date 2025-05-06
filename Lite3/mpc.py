@@ -14,6 +14,7 @@ class MPC:
     self.delta = params['world_time_step']
     self.h = params['h']
     self.foot_size = params['foot_size']
+    self.mu = params['µ']
     self.initial = initial
     self.footstep_planner = footstep_planner
     #self.sigma = lambda t, t0, t1: np.clip((t - t0) / (t1 - t0), 0, 1) # piecewise linear sigmoidal function
@@ -126,42 +127,45 @@ class MPC:
 
     # Force inequality constraint (20)
     # TODO: check parameters
-    f_min = -10
-    f_max = 1000
+    f_min = -20   # mi funzionava con -10
+    f_max = 1000    # fino a tipo 700 funziona
     mu = 0.5 
     for i in range(self.N):
 
       self.opt.subject_to( self.X[12,i] == self.params['g']) 
-      # (22)
-      for j in range(2, 12, 3):
-        self.opt.subject_to( f_min <= self.U[j, i] )
-        self.opt.subject_to( self.U[j, i] <= f_max )
+
+      # TODO
+      # (22)                                                   # Paradossalmente il robot va meglio senza questo 
+      for j in range(2, 12, 3):                                # constraint. Mettendo valori di f_min MAGGIORI di 0 la simulazione runna,
+        self.opt.subject_to( f_min <= self.U[j, i] )           # ma trova soluzioni per le gambe di support o nulle o comunque molto basse,
+        self.opt.subject_to( self.U[j, i] <= f_max )           # e quindi vanno dove gli pare
 
       # (24)
       for j in range(1, 12 , 3):
-        self.opt.subject_to( -mu*self.U[j+1,i] <= self.U[j, i] )
-        self.opt.subject_to( self.U[j, i] <= mu*self.U[j+1,i]  )
+        self.opt.subject_to( -self.mu*self.U[j+1,i] <= self.U[j, i] )
+        self.opt.subject_to( self.U[j, i] <= self.mu*self.U[j+1,i]  )
 
-        self.opt.subject_to( -mu*self.U[j+1,i] <= -self.U[j, i] )
-        self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+1,i]  )
+        self.opt.subject_to( -self.mu*self.U[j+1,i] <= -self.U[j, i] )
+        self.opt.subject_to( -self.U[j, i] <= self.mu*self.U[j+1,i]  )
 
       # (23)
       for j in range(0, 12 , 3):
-        self.opt.subject_to( -mu*self.U[j+2,i] <= self.U[j, i] )
-        self.opt.subject_to( self.U[j, i] <= mu*self.U[j+2,i]  )
+        self.opt.subject_to( -self.mu*self.U[j+2,i] <= self.U[j, i] )
+        self.opt.subject_to( self.U[j, i] <= self.mu*self.U[j+2,i]  )
 
-        self.opt.subject_to( -mu*self.U[j+2,i] <= -self.U[j, i] )
-        self.opt.subject_to( -self.U[j, i] <= mu*self.U[j+2,i]  )
+        self.opt.subject_to( -self.mu*self.U[j+2,i] <= -self.U[j, i] )
+        self.opt.subject_to( -self.U[j, i] <= self.mu*self.U[j+2,i]  )
 
 
   def solve(self, t):
 
     gait = self.footstep_planner.get_phase_at_time(t)
-    print(gait)
+    # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
+    # sennò il doggo continua a portare il busto in avanti, sbilanciandosi
     if np.array_equal(gait, np.array([1,1,1,1])):
-      v = self.params['v_com_ref']*0
+      v_com_gait = self.params['v_com_ref']*0
     else:
-      v = self.params['v_com_ref']
+      v_com_gait = self.params['v_com_ref']
     
     #---------------------- Retreive state ----------------------  
     # ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
@@ -180,18 +184,18 @@ class MPC:
     # setting constant values
     x_des_num = np.zeros((13, self.N+1))
     x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
-
     x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
-    x_des_num[9:12, :] = np.ones((3, self.N+1)) * v.reshape(3,1) # Constant velocity of CoM
+    x_des_num[9:12, :] = np.ones((3, self.N+1)) * v_com_gait.reshape(3,1) # Constant velocity of CoM
     x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
     x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
-    x_des_num[3:6,0] = self.com_pos_start + v*self.delta
+    x_des_num[3:6,0] = self.com_pos_start + v_com_gait*self.delta
     x_des_num[5,0] = self.h
+
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
-      x_des_num[3:6, i] = x_des_num[3:6, i-1] + v*self.delta # Integrating com_pos
-    #---------------------- Parameter substitutions ----------------------
+      x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
 
+    #---------------------- Parameter substitutions ----------------------
     r1_skew_num = np.zeros((3,self.N*3))
     r2_skew_num = np.zeros((3,self.N*3))
     r3_skew_num = np.zeros((3,self.N*3))
@@ -201,8 +205,7 @@ class MPC:
     r2_num = current_state['FR_FOOT']['pos'][3:] - current_state['com']['pos']
     r3_num = current_state['HL_FOOT']['pos'][3:] - current_state['com']['pos']
     r4_num = current_state['HR_FOOT']['pos'][3:] - current_state['com']['pos']
-    #print('------R1_NUM----------------------------')
-    #print(r1_num)
+
     for i in range(self.N):
         
       r1_skew_num[:,3*i:3*(1+i)] = compute_skew(r1_num)
@@ -215,7 +218,7 @@ class MPC:
       r2_num = self.update_r_num(future_t,'FR_FOOT',x_des_num[3:6,i+1])
       r3_num = self.update_r_num(future_t,'HL_FOOT',x_des_num[3:6,i+1])
       r4_num = self.update_r_num(future_t,'HR_FOOT',x_des_num[3:6,i+1])
-      #print(r1_num)
+
 
     self.opt.set_value(self.x0_param, self.x)      # Substitution initial state
     self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
@@ -229,12 +232,6 @@ class MPC:
       swing_value = self.footstep_planner.get_phase_at_time(t+i)
       swing_inverted[:, i] = np.array([1, 1, 1, 1]) - np.array(swing_value)
 
-      
-    #print('gait')
-    #print(gait)
-    #print()
-    #print('swing_inverted')
-    #print(swing_inverted)
     self.opt.set_value(self.swing_param, swing_inverted)
     
     
@@ -279,31 +276,20 @@ class MPC:
     }
     #if t % 10 == 0 or t == 0:
     #  log_mpc(self, t, x_des_num, swing_inverted, forces)
-
-    #print('FORZE Z')
-    #print(forces_z)
-    #print()
-    #print('x_des[1]')
-    #print(x_des_num[:,1])
-    #print()
-    #print('x')
-    #print(self.x)
-    #print()
-    #print('state_com')
-    #print(state_com)
   
-    if t == 500:
-      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
-    if t == 899:
-      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    #if t == 260:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    #if t == 100:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    #if t == 150:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    #if t == 200:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
 
     return forces
   
   def update_r_num(self, time, leg_name, next_com):
     gait = self.footstep_planner.get_phase_at_time(time)
-    #current_state = self.lite3.retrieve_state()
-    #pos=current_state[leg_name]['pos'][3:]
-    #pos_com=current_state['com']['pos']
 
     if self.footstep_planner.is_swing(leg_name,gait) == 1:
       leg_pos = self.trajectory_generator.generate_feet_trajectories_at_time(time, leg_name)
@@ -312,15 +298,6 @@ class MPC:
       return r_num
     else:
       step = self.footstep_planner.get_step_index_at_time(time)
-      #print(step)
       leg_pos = self.footstep_planner.plan[step]['pos'][leg_name]
-      #print(leg_name)
-      #print(leg_pos)
-      #print()
       r_num = leg_pos - next_com
-      #print('r_num')
-      #print(r_num)
-      #print()
-      #print('next_com')
-      #print(next_com)
       return r_num

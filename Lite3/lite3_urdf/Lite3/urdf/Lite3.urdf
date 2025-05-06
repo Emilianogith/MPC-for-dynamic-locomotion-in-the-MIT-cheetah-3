@@ -111,7 +111,7 @@
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.006"/> 
+        <sphere radius="0.01"/> 
       </geometry> 
     </collision> 
   </link> 
@@ -206,7 +206,7 @@
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.006"/> 
+        <sphere radius="0.01"/> 
       </geometry> 
     </collision> 
   </link> 
@@ -301,7 +301,7 @@
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.006"/> 
+        <sphere radius="0.01"/> 
       </geometry> 
     </collision> 
   </link> 
@@ -396,7 +396,7 @@
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.006"/> 
+        <sphere radius="0.01"/> 
       </geometry> 
     </collision> 
   </link> 
