@@ -45,11 +45,11 @@ class FootTrajectoryGenerator:
         t_swing = 0.95*T
         t_stay = 0.05*T
 
-        print('t',t)
+        #print('t',t)
 
     
         if t >= T:
-            print('AOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+            #print('AOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
             self.plan[step_index]['feet_id'] = [1,1,1,1]
             return {
                 'pos': np.hstack((start_ang, start_pos)),
@@ -81,7 +81,7 @@ class FootTrajectoryGenerator:
             'vel': np.hstack((swing_ang_vel, swing_vel)),
             'acc': np.hstack((swing_ang_acc, swing_acc))
         }
-        print('--------------------------------------------------------------')
+        #print('--------------------------------------------------------------')
         #print(swing_data['pos'])
         return swing_data
     

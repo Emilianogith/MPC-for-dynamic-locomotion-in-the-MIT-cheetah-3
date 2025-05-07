@@ -235,7 +235,7 @@ class MPC:
     self.opt.set_value(self.swing_param, swing_inverted)
     
     
-    print("------------------------------------------------------------------------------------------------")
+    #print("------------------------------------------------------------------------------------------------")
 
     self.opt.set_value(self.x_des, x_des_num) # Substitution desired state
     
