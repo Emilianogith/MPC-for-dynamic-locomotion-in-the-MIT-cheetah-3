@@ -34,7 +34,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'ss_duration': 25,
             'ds_duration': 75,
             'world_time_step': world.getTimeStep(), # 0.01
-            'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'FR_FOOT'], 
+            'real_time_plot' : ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.5,
             'N':80,
@@ -43,7 +43,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'theta_dot' : 0.00
         }
 
-        self.plot_keys = self.params['real_time_plot']
         self.Kp = np.eye(3)*0.8
         self.Kd = np.eye(3)*0.8
 
@@ -80,10 +79,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.lite3.setPosition(5, 0.295)     # Legs bent
 
         initial_state = self.retrieve_state()
-        self.fl_sole_pos = initial_state['FL_FOOT']['pos'][3:] #self.fl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        self.fr_sole_pos = initial_state['FR_FOOT']['pos'][3:] #self.fr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        self.hl_sole_pos = initial_state['HL_FOOT']['pos'][3:] #self.hl_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
-        self.hr_sole_pos = initial_state['HR_FOOT']['pos'][3:] #self.hr_sole.getTransform(withRespectTo=dart.dynamics.Frame.World(), inCoordinatesOf=dart.dynamics.Frame.World()).translation()
+        self.fl_sole_pos = initial_state['FL_FOOT']['pos'][3:]
+        self.fr_sole_pos = initial_state['FR_FOOT']['pos'][3:]
+        self.hl_sole_pos = initial_state['HL_FOOT']['pos'][3:]
+        self.hr_sole_pos = initial_state['HR_FOOT']['pos'][3:]
         self.roll        = initial_state['TORSO']['pos'][0] 
         self.pitch       = initial_state['TORSO']['pos'][1] 
         self.yaw         = initial_state['TORSO']['pos'][2] 
@@ -111,15 +110,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             params = self.params
         )
 
-        #self.leg_controller = SingleLegController(           # EMILIANO: Propongo di togliere la classe Graund comntroller e  creare una funzione qui dentro, cosi evitiamo di passare lite3
-        #    lite3 = self.lite3, 
-        #    lite3_controller = self, 
-        #    trajectory_generator =  self.trajectory_generator,
-        #    params = self.params,
-        #    initial = self.initial,
-        #    footstep_planner = self.footstep_planner
-        #)
-
         self.mpc = MPC(
             lite3 = self,
             initial = self.initial,
@@ -128,9 +118,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         )
 
         # initialize logger and plots
+        self.plot_keys = self.params['real_time_plot']
+        
+        self.logger = Logger(self.plot_keys)
         if not self.plot_keys == []:
-            self.logger = Logger(self.plot_keys)
-            self.logger.initialize_plot_group(frequency=10, keys_to_plot=self.plot_keys)
+            self.logger.initialize_plot_group(frequency=10)
 
         #self.trajectory_generator.show_trajectory(foot_to_sample='FR_FOOT', t_start=0, t_end=800, string_axs='z')
 
@@ -158,16 +150,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         #         elif body2 and body2.getName() == foot:
         #             foot_forces[foot] += contact.force
 
-                #print(contact.force)
-            #print(foot_forces)
-            
-
-        # Test value for controls
-        # foot_forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
-        #                'FR_FOOT' : [0.0, 0.0, -60.0],
-        #                'HL_FOOT' : [0.0, 0.0, -60.0],
-        #                'HR_FOOT' : [0.0, 0.0, -20.0],
-        #                 }
         
         tau = { 'FL_FOOT' : [0, 0, 0],
                 'FR_FOOT' : [0, 0, 0],
@@ -195,8 +177,14 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         for j, leg_name in enumerate(tasks):
             if gait[j] == 1:
                 tau[leg_name] = tau_ground[leg_name]
+
+                self.logger.log_data(leg_name+'_des', self.footstep_planner.plan[step_index]['pos'][leg_name][2])
+
             else:
-                tau[leg_name] = self.swing_leg_controller(leg_name)
+                tau[leg_name], p_des = self.swing_leg_controller(leg_name)
+                
+                self.logger.log_data(leg_name+'_des', p_des[2])
+
 
         for task,value in joint_name.items():
             lite3.setCommand(lite3.getDof(value[0]).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
@@ -205,15 +193,19 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
 
         if not self.plot_keys == []:
-            self.logger.log_data('FL_FOOT', tau['FL_FOOT'][2])
-            self.logger.log_data('FL_FOOT_des', tau['FL_FOOT'][2]+0.5)
-            self.logger.log_data('FR_FOOT', tau['FR_FOOT'][2])
+            state = self.retrieve_state()
+
+            self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][5])
+            self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][5])
+            self.logger.log_data('com', state['com']['pos'][2])
+            self.logger.log_data('com_des', self.params['h'])
+            
             self.logger.update_plot_group(self.time)
 
         self.time +=1
-        print(f"Current time: {self.time}")
+        #print(f"Current time: {self.time}")
         #print('gait', gait)
-        print(step_index, gait)
+        #print(step_index, gait)
         
 
         #state = self.retrieve_state()
@@ -300,7 +292,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         tau_coriolis_gravity = CG[leg_name]
         tau_ff = J_leg.transpose() @ op_space_mi @ ( a_des - J_leg_dot @ self.dq[leg_name]) + tau_coriolis_gravity
         tau = J_leg.transpose() @ ( self.Kp @ ( p_des - p_leg_curr) + self.Kd @ (v_des - v_leg_curr) ) + tau_ff
-        return tau
+        return tau, p_des
 
     def retrieve_state(self):
         """

@@ -8,6 +8,8 @@ class Logger():
             self.log[item] = []
 
     def log_data(self, plot_name, plot_data):
+        if plot_name not in self.log.keys():
+            return
         self.log[plot_name].append(plot_data)
 
     def initialize_plot_group(self, frequency=1):
@@ -62,17 +64,16 @@ class Logger():
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-    def initialize_plot(self, keys_to_plot, frequency=1):
+    def initialize_plot(self, frequency=1):
         self.frequency = frequency
-        self.keys_to_plot = keys_to_plot
 
-        self.fig, self.ax = plt.subplots(len(keys_to_plot), 1, figsize=(6, 4 * len(keys_to_plot)))
+        self.fig, self.ax = plt.subplots(len(self.log.keys()), 1, figsize=(6, 4 * len(keys_to_plot)))
 
-        if len(keys_to_plot) == 1:
+        if len(self.log.keys()) == 1:
             self.ax = [self.ax]  # Ensure list-like structure
 
         self.lines = {}
-        for i, key in enumerate(keys_to_plot):
+        for i, key in enumerate(self.log.keys()):
             self.lines[key], = self.ax[i].plot([], [], label=key)
             self.ax[i].set_title(key)
             self.ax[i].legend()
