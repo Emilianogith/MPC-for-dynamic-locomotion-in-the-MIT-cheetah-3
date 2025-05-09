@@ -244,7 +244,7 @@ def display_marker(object, body_name, position_in_world_coords,
                 sphere_node.setRelativeTranslation(position_in_world_coords)
 
 
-def plot_com_and_forces(N, com_position, com_desired, forces):
+def plot_com_and_forces(N, com_position, com_desired, forces, t):
     """
     Plots center of mass positions (actual vs desired) and forces over time.
     
@@ -255,15 +255,20 @@ def plot_com_and_forces(N, com_position, com_desired, forces):
         forces: 4xN.
     """
 
-    time = np.linspace(0, N, N)
+    time = np.linspace(t, t+ N, N)
 
     fig, axs = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
     
     # Plot CoM actual vs desired
     labels = ['x', 'y', 'z']
-    for i in range(3):
-        axs[0].plot(time, com_position[i, :], label=f'Actual {labels[i]}')
-        axs[0].plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
+    #for i in range(3):
+    #    axs[0].plot(time, com_position[i, :], label=f'Actual {labels[i]}')
+    #    axs[0].plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
+
+    label_curr = 2
+    axs[0].plot(time, com_position[label_curr, :], label=f'Actual {labels[label_curr]}')
+    axs[0].plot(time, com_desired[label_curr, :], '--', label=f'Desired {labels[label_curr]}')
+    
     axs[0].set_ylabel("CoM Position (m)")
     axs[0].set_title("Center of Mass (CoM) Position Over Time")
     axs[0].legend()

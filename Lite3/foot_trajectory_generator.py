@@ -28,10 +28,15 @@ class FootTrajectoryGenerator:
         #gait = self.footstep_planner.plan[step_index]['feet_id']
         ss_duration = self.footstep_planner.plan[step_index]['ss_duration']
         
-        start_pos  = np.array(self.plan[step_index-1]['pos'][foot])  #check il -1
-        target_pos = np.array(self.plan[step_index+1]['pos'][foot])
-        start_ang  = np.array(self.plan[step_index-1]['ang'])
-        target_ang = np.array(self.plan[step_index+1]['ang'])
+        start_pos  = np.array(self.plan[step_index]['pos'][foot])  #check il -1
+        start_ang  = np.array(self.plan[step_index]['ang'])
+
+        try:
+            target_pos = np.array(self.plan[step_index+1]['pos'][foot])
+            target_ang = np.array(self.plan[step_index+1]['ang'])
+        except:
+            target_pos = np.array(self.plan[step_index]['pos'][foot])
+            target_ang = np.array(self.plan[step_index]['ang'])
 
         if step_index == 0:
             return {
@@ -49,10 +54,10 @@ class FootTrajectoryGenerator:
 
     
         if t >= T:
-            #print('AOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+            print('AOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
             self.plan[step_index]['feet_id'] = [1,1,1,1]
             return {
-                'pos': np.hstack((start_ang, start_pos)),
+                'pos': np.hstack((target_ang, target_pos)),
                 'vel': np.zeros(6),
                 'acc': np.zeros(6)
             }

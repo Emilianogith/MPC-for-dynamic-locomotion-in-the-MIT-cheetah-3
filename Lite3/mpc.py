@@ -48,7 +48,7 @@ class MPC:
         horzcat(0,            0,           1)
     )
 
-    self.m = 12.72
+    self.m = 9.72 #12.72
 
     I_body_inv = MX.zeros(3,3)
     I_body_inv[0,0] = 1/0.24
@@ -105,8 +105,8 @@ class MPC:
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
            1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           1 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           1 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           100 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           50 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
            1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
@@ -127,7 +127,7 @@ class MPC:
 
     # Force inequality constraint (20)
     # TODO: check parameters
-    f_min = -20   # mi funzionava con -10
+    f_min = -10   # mi funzionava con -10
     f_max = 1000    # fino a tipo 700 funziona
     mu = 0.5 
     for i in range(self.N):
@@ -277,8 +277,8 @@ class MPC:
     #if t % 10 == 0 or t == 0:
     #  log_mpc(self, t, x_des_num, swing_inverted, forces)
   
-    #if t == 260:
-    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    #if t == 100:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
     #if t == 100:
     #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
     #if t == 150:
