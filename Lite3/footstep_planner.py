@@ -41,7 +41,7 @@ class FootstepPlanner:
         R = np.array([[np.cos(initial_theta), - np.sin(initial_theta)],
                       [np.sin(initial_theta),   np.cos(initial_theta)]])
                     
-        total_steps = 9          # EMILIANO: possiamo renderlo un parametro?
+        total_steps = params['total_steps']          # EMILIANO: possiamo renderlo un parametro?
         for j in range(total_steps):
            # set step duration
             #pos = {
@@ -73,7 +73,7 @@ class FootstepPlanner:
 
             # move virtual unicycle
             for i in range(ss_duration):
-                if j > 1:
+                if j >= 1:
                     unicycle_theta += vref[2] * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
                                   [np.sin(unicycle_theta),   np.cos(unicycle_theta)]])
@@ -94,6 +94,7 @@ class FootstepPlanner:
             leg_displacement_x = R @ input_vector # length of the step: 0.1
             leg_displacement_x = leg_displacement_x.flatten()
 
+            '''
             if j == total_steps-1: # Lite3 end its walk ( no more steps ahead )
                 #leg_displacement_x = 0
                 pos = {
@@ -129,30 +130,31 @@ class FootstepPlanner:
 
                         "ang": unicycle_theta  
                     }
-            elif j > 0: # Lite3 walk
+            '''
+            if j > 0: # Lite3 walk
                 pos = {
                         "FL_FOOT": [
-                            self.plan[j-1]['pos']['FL_FOOT'][0] if support_foot[2] else unicycle_pos[0] + torso_displacement[0] + leg_displacement_x[0] - leg_displacement_y[0], 
-                            self.plan[j-1]['pos']['FL_FOOT'][1] if support_foot[2] else unicycle_pos[1] + torso_displacement[1] + leg_displacement_x[1] - leg_displacement_y[1],
-                            self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[2] else unicycle_pos[2]
+                            self.plan[j-1]['pos']['FL_FOOT'][0] if support_foot[0] else unicycle_pos[0] + torso_displacement[0] + leg_displacement_x[0] - leg_displacement_y[0], 
+                            self.plan[j-1]['pos']['FL_FOOT'][1] if support_foot[0] else unicycle_pos[1] + torso_displacement[1] + leg_displacement_x[1] - leg_displacement_y[1],
+                            self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[0] else unicycle_pos[2]
                         ],      
 
                         "FR_FOOT": [
-                            self.plan[j-1]['pos']['FR_FOOT'][0] if support_foot[3] else unicycle_pos[0]  + torso_displacement[0] + leg_displacement_x[0] + leg_displacement_y[0],
-                            self.plan[j-1]['pos']['FR_FOOT'][1] if support_foot[3] else unicycle_pos[1]  + torso_displacement[1] + leg_displacement_x[1] + leg_displacement_y[1],
-                            self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[3] else unicycle_pos[2]
+                            self.plan[j-1]['pos']['FR_FOOT'][0] if support_foot[1] else unicycle_pos[0]  + torso_displacement[0] + leg_displacement_x[0] + leg_displacement_y[0],
+                            self.plan[j-1]['pos']['FR_FOOT'][1] if support_foot[1] else unicycle_pos[1]  + torso_displacement[1] + leg_displacement_x[1] + leg_displacement_y[1],
+                            self.plan[j-1]['pos']['FR_FOOT'][2] if support_foot[1] else unicycle_pos[2]
                         ],
 
                         "HL_FOOT": [
-                            self.plan[j-1]['pos']['HL_FOOT'][0] if support_foot[0] else unicycle_pos[0] + leg_displacement_x[0] - leg_displacement_y[0],
-                            self.plan[j-1]['pos']['HL_FOOT'][1] if support_foot[0] else unicycle_pos[1] + leg_displacement_x[1] - leg_displacement_y[1],
-                            self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[0] else unicycle_pos[2]
+                            self.plan[j-1]['pos']['HL_FOOT'][0] if support_foot[2] else unicycle_pos[0] + leg_displacement_x[0] - leg_displacement_y[0],
+                            self.plan[j-1]['pos']['HL_FOOT'][1] if support_foot[2] else unicycle_pos[1] + leg_displacement_x[1] - leg_displacement_y[1],
+                            self.plan[j-1]['pos']['HL_FOOT'][2] if support_foot[2] else unicycle_pos[2]
                         ],
                         
                         "HR_FOOT": [
-                            self.plan[j-1]['pos']['HR_FOOT'][0] if support_foot[1] else unicycle_pos[0] + leg_displacement_x[0] + leg_displacement_y[0], 
-                            self.plan[j-1]['pos']['HR_FOOT'][1] if support_foot[1] else unicycle_pos[1] + leg_displacement_x[1] + leg_displacement_y[1],
-                            self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[1] else unicycle_pos[2]
+                            self.plan[j-1]['pos']['HR_FOOT'][0] if support_foot[3] else unicycle_pos[0] + leg_displacement_x[0] + leg_displacement_y[0], 
+                            self.plan[j-1]['pos']['HR_FOOT'][1] if support_foot[3] else unicycle_pos[1] + leg_displacement_x[1] + leg_displacement_y[1],
+                            self.plan[j-1]['pos']['HR_FOOT'][2] if support_foot[3] else unicycle_pos[2]
                         ],
                          
                         "hip":[
@@ -236,14 +238,14 @@ class FootstepPlanner:
 
         x_hip = [step['pos']["hip"][0] for step in self.plan ]
         y_hip = [step['pos']["hip"][1] for step in self.plan ]
+        
+
+        print("x_hl_foot:\t", [round(x, 2) for x in x_hl_foot])
+        print("x_hr_foot:\t", [round(x, 2) for x in x_hr_foot])
+        print("x_fl_foot:\t", [round(x, 2) for x in x_fl_foot])
+        print("x_fr_foot:\t", [round(x, 2) for x in x_fr_foot])
+        print("x_hip:\t\t", [round(x, 2) for x in x_hip])
         '''
-
-        #print("x_hl_foot:\t", [round(x, 2) for x in x_hl_foot])
-        #print("x_hr_foot:\t", [round(x, 2) for x in x_hr_foot])
-        #print("x_fl_foot:\t", [round(x, 2) for x in x_fl_foot])
-        #print("x_fr_foot:\t", [round(x, 2) for x in x_fr_foot])
-        #print("x_hip:\t\t", [round(x, 2) for x in x_hip])
-
 
         #EMILIANO: possiamo creare una funzione per questo
         ''' 
