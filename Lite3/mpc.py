@@ -13,11 +13,9 @@ class MPC:
     self.N = params['N']
     self.delta = params['world_time_step']
     self.h = params['h']
-    self.foot_size = params['foot_size']
     self.mu = params['µ']
     self.initial = initial
     self.footstep_planner = footstep_planner
-    #self.sigma = lambda t, t0, t1: np.clip((t - t0) / (t1 - t0), 0, 1) # piecewise linear sigmoidal function
     self.com_pos_start = initial['com_position']
     self.yaw_start = initial['yaw']
 
@@ -25,6 +23,9 @@ class MPC:
             footstep_planner = self.footstep_planner,
             params = self.params
         )
+
+    f_min = 10  
+    f_max = 1000  
 
     # optimization problem
     self.opt = cs.Opti('conic')
@@ -55,8 +56,6 @@ class MPC:
     I_body_inv[1,1] = 1/1
     I_body_inv[2,2] = 1/1
 
-    # TODO: totti-check
-    #I_hat = Rz @ I_body @ Rz.T 
     I_hat_inv = Rz @I_body_inv @ Rz.T  #cs.inv(I_hat)
 
     #self.r1 = self.opt.parameter(3)
@@ -93,8 +92,7 @@ class MPC:
       B_0 = vertcat(B_row1, B_row2, B_row3, B_row4, B_row5)
       self.B[:,12*i:12*(1+i)] = B_0
 
-
-    ## TODO: dynamics 
+    # Dyanamics
     self.f = lambda x, u, i: self.A @ x + self.B[:,12*i:12*(1+i)] @ u
   
     # State constraint (19)
@@ -104,9 +102,9 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
-           1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           50 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           0.5 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           5 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           3 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
            1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
@@ -126,19 +124,16 @@ class MPC:
 
 
     # Force inequality constraint (20)
-    # TODO: check parameters
-    f_min = -10   # mi funzionava con -10
-    f_max = 1000    # fino a tipo 700 funziona
-    mu = 0.5 
     for i in range(self.N):
-
       self.opt.subject_to( self.X[12,i] == self.params['g']) 
 
-      # TODO
-      # (22)                                                   # Paradossalmente il robot va meglio senza questo 
-      for j in range(2, 12, 3):                                # constraint. Mettendo valori di f_min MAGGIORI di 0 la simulazione runna,
-        self.opt.subject_to( f_min <= self.U[j, i] )           # ma trova soluzioni per le gambe di support o nulle o comunque molto basse,
-        self.opt.subject_to( self.U[j, i] <= f_max )           # e quindi vanno dove gli pare
+      # (22)
+      index = 0                                                   
+      for j in range(2, 12, 3):
+        cond = 1-self.swing_param[index,i]                         
+        self.opt.subject_to( cond*f_min <= cond*self.U[j, i] )           
+        self.opt.subject_to( cond*self.U[j, i] <= cond*f_max )
+        index +=1     
 
       # (24)
       for j in range(1, 12 , 3):
@@ -160,16 +155,21 @@ class MPC:
   def solve(self, t):
 
     gait = self.footstep_planner.get_phase_at_time(t)
+
+
+    #----------------------CHECK, quando il planner è sistemato, LEVARE
     # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
-    # sennò il doggo continua a portare il busto in avanti, sbilanciandosi
+    # sennò il doggo continua a portare il busto in avanti, sbilanciandosi TODO
     if np.array_equal(gait, np.array([1,1,1,1])):
-      v_com_gait = self.params['v_com_ref']*0
+      v_com_gait = self.params['v_com_ref']*1
     else:
       v_com_gait = self.params['v_com_ref']
     
+
+
     #---------------------- Retreive state ----------------------  
     # ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
-    current_state = self.lite3.retrieve_state() # TODO: totti check di stampe
+    current_state = self.lite3.retrieve_state() 
     state_rpy = np.array([current_state['TORSO']['pos']]).T
     state_com = np.array([current_state['com']['pos']]).T
     state_av  = np.array([current_state['TORSO']['vel']]).T
@@ -261,26 +261,27 @@ class MPC:
       'HR_FOOT' : self.u[9:12],
     }
 
-    forces_plot = np.array([
-                            self.u_plot[2,:],
-                            self.u_plot[5,:],
-                            self.u_plot[8,:],
-                            self.u_plot[11,:],
-    ])
+    #forces_plot = np.array([
+    #                        self.u_plot[2,:],
+    #                        self.u_plot[5,:],
+    #                        self.u_plot[8,:],
+    #                        self.u_plot[11,:],
+    #])
 
-    forces_z = {
-      'FL_FOOT' : self.u[2],
-      'FR_FOOT' : self.u[5],
-      'HL_FOOT' : self.u[8],
-      'HR_FOOT' : self.u[11],
-    }
+    #forces_z = {
+    #  'FL_FOOT' : self.u[2],
+    #  'FR_FOOT' : self.u[5],
+    #  'HL_FOOT' : self.u[8],
+    #  'HR_FOOT' : self.u[11],
+    #}
+
     #if t % 10 == 0 or t == 0:
     #  log_mpc(self, t, x_des_num, swing_inverted, forces)
   
-    #if t == 100:
+    #if t == 150:
     #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-    #if t == 100:
-    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
+    #if t == 200:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
     #if t == 150:
     #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot)
     #if t == 200:

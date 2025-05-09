@@ -54,7 +54,6 @@ class FootTrajectoryGenerator:
 
     
         if t >= T:
-            print('AOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
             self.plan[step_index]['feet_id'] = [1,1,1,1]
             return {
                 'pos': np.hstack((target_ang, target_pos)),

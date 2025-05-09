@@ -28,23 +28,22 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.285,
-            'foot_size': 0.1,   #non serve
-            'step_height': 0.08,
-            'ss_duration': 35,
-            'ds_duration': 10,
+            'h': 0.285, #0.285
+            'step_height': 0.06,
+            'ss_duration': 20,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 10,
+            'total_steps': 8,
             'real_time_plot' :[], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
-            'µ': 0.5,
-            'N':80,
+            'µ': 0.4,
+            'N': 40,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.2  ,0,0]),
-            'theta_dot' : 0.00
+            'v_com_ref' : np.array([0.2,0,0]),
+            'theta_dot' : 0.0
         }
 
-        self.Kp = np.eye(3)*30
+        self.Kp = np.eye(3)*40
         self.Kd = np.eye(3)*0.8
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
@@ -103,9 +102,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
 
         self.footstep_planner = FootstepPlanner(
-            vref = np.array([self.params['v_com_ref'][0], self.params['v_com_ref'][1], self.params['theta_dot']]), # quindi puo essere dedotta da params?
             initial_configuration = self.initial,
-            leg_displacement_x = 0.010,
             params = self.params,
             )
         
@@ -429,14 +426,14 @@ if __name__ == "__main__":
         x_fr_foot = step['pos']["FR_FOOT"][0]
         y_fr_foot = step['pos']["FR_FOOT"][1]
 
-        #display_marker(ground, 'ground_link', position_in_world_coords=[x_hl_foot,y_hl_foot,0.5],
-        #       color= [255, 0, 0], print_bodieds_of_the_object=False)
-        #display_marker(ground, 'ground_link', position_in_world_coords=[x_hr_foot,y_hr_foot,0.5],
-        #       color= [0, 0, 255], print_bodieds_of_the_object=False)
-        #display_marker(ground, 'ground_link', position_in_world_coords=[x_fl_foot,y_fl_foot,0.5],
-        #        color= [0, 255, 0], print_bodieds_of_the_object=False)
-        #display_marker(ground, 'ground_link', position_in_world_coords=[x_fr_foot,y_fr_foot,0.5],
-        #        color= [255, 0, 255], print_bodieds_of_the_object=False)    
+        display_marker(ground, 'ground_link', position_in_world_coords=[x_hl_foot,y_hl_foot,0.5],
+               color= [255, 0, 0], print_bodieds_of_the_object=False)
+        display_marker(ground, 'ground_link', position_in_world_coords=[x_hr_foot,y_hr_foot,0.5],
+               color= [0, 0, 255], print_bodieds_of_the_object=False)
+        display_marker(ground, 'ground_link', position_in_world_coords=[x_fl_foot,y_fl_foot,0.5],
+                color= [0, 255, 0], print_bodieds_of_the_object=False)
+        display_marker(ground, 'ground_link', position_in_world_coords=[x_fr_foot,y_fr_foot,0.5],
+                color= [255, 0, 255], print_bodieds_of_the_object=False)    
 
     # create world node and add it to viewer
     viewer = dart.gui.osg.Viewer()

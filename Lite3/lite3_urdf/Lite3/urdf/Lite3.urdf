@@ -116,10 +116,34 @@
     </collision> 
   </link> 
  
+  <link name="FL_FOOT2"> 
+    <inertial> 
+      <mass value="1E-12" /> 
+      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+    </inertial> 
+    <visual>
+      <material name="green"><color rgba="1 0 0 1"/></material>
+      <geometry> 
+          <sphere radius="0.01"/> 
+      </geometry> 
+    </visual>
+    <collision> 
+      <geometry> 
+        <sphere radius="0.01"/> 
+      </geometry> 
+    </collision> 
+  </link> 
+ 
   <joint name="FL_Ankle" type="fixed"> 
     <origin xyz="0 0 -0.23"/> 
     <parent link="FL_SHANK" /> 
     <child link="FL_FOOT" /> 
+  </joint> 
+
+  <joint name="FL_Ankle2" type="fixed"> 
+    <origin xyz="-0.01 0 -0.225"/> 
+    <parent link="FL_SHANK" /> 
+    <child link="FL_FOOT2" /> 
   </joint> 
  
   <link name="FR_HIP"> 
@@ -211,11 +235,35 @@
     </collision> 
   </link> 
  
+  <link name="FR_FOOT2"> 
+    <inertial> 
+      <mass value="1E-12" /> 
+      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+    </inertial> 
+    <visual>
+      <material name="green"><color rgba="1 0 0 1"/></material>
+      <geometry> 
+          <sphere radius="0.01"/> 
+      </geometry> 
+    </visual>
+    <collision> 
+      <geometry> 
+        <sphere radius="0.01"/> 
+      </geometry> 
+    </collision> 
+  </link> 
+ 
   <joint name="FR_Ankle" type="fixed"> 
     <origin xyz="0 0 -0.23"/> 
     <parent link="FR_SHANK" /> 
     <child link="FR_FOOT" /> 
   </joint> 
+
+  <joint name="FR_Ankle2" type="fixed"> 
+    <origin xyz="-0.01 0 -0.225"/> 
+    <parent link="FR_SHANK" /> 
+    <child link="FR_FOOT2" /> 
+  </joint>
  
   <link name="HL_HIP"> 
     <inertial> 
@@ -305,12 +353,36 @@
       </geometry> 
     </collision> 
   </link> 
+
+  <link name="HL_FOOT2"> 
+    <inertial> 
+      <mass value="1E-12" /> 
+      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+    </inertial> 
+    <visual>
+      <material name="green"><color rgba="1 0 0 1"/></material>
+      <geometry> 
+          <sphere radius="0.01"/> 
+      </geometry> 
+    </visual>
+    <collision> 
+      <geometry> 
+        <sphere radius="0.01"/> 
+      </geometry> 
+    </collision> 
+  </link> 
  
   <joint name="HL_Ankle" type="fixed"> 
     <origin xyz="0 0 -0.23"/> 
     <parent link="HL_SHANK" /> 
     <child link="HL_FOOT" /> 
   </joint> 
+
+  <joint name="HL_Ankle2" type="fixed"> 
+    <origin xyz="-0.01 0 -0.225"/> 
+    <parent link="HL_SHANK" /> 
+    <child link="HL_FOOT2" /> 
+  </joint>
  
   <link name="HR_HIP"> 
     <inertial> 
@@ -370,7 +442,7 @@
     </inertial> 
     <visual> 
       <geometry> 
-        <mesh filename="../meshes/SHANK.dae" /> 
+        <mesh filename="../meshes/SHANK.dae" />
       </geometry> 
     </visual> 
     <collision> 
@@ -394,6 +466,29 @@
       <mass value="1E-12" /> 
       <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
     </inertial> 
+    <visual>
+      <geometry> 
+          <sphere radius="0.01"/> 
+      </geometry> 
+    </visual>
+    <collision> 
+      <geometry> 
+        <sphere radius="0.01"/> 
+      </geometry> 
+    </collision> 
+  </link> 
+
+  <link name="HR_FOOT2"> 
+    <inertial> 
+      <mass value="1E-12" /> 
+      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+    </inertial> 
+    <visual>
+      <material name="green"><color rgba="1 0 0 1"/></material>
+      <geometry> 
+          <sphere radius="0.01"/> 
+      </geometry> 
+    </visual>
     <collision> 
       <geometry> 
         <sphere radius="0.01"/> 
@@ -405,6 +500,12 @@
     <origin xyz="0 0 -0.23"/> 
     <parent link="HR_SHANK" /> 
     <child link="HR_FOOT" /> 
+  </joint> 
+
+  <joint name="HR_Ankle2" type="fixed"> 
+    <origin xyz="-0.01 0 -0.225"/> 
+    <parent link="HR_SHANK" /> 
+    <child link="HR_FOOT2" /> 
   </joint> 
  
 </robot> 
