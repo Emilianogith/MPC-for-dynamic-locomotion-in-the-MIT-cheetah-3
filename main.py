@@ -365,8 +365,8 @@ if __name__ == "__main__":
 
     # URDF files loading:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    urdf_path = os.path.join(current_dir, "lite3_urdf/Lite3/urdf", "Lite3.urdf")
-    ground_path = os.path.join(current_dir, "lite3_urdf/Lite3/urdf", "ground.urdf")
+    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3.urdf")
+    ground_path = os.path.join(current_dir, "lite3_urdf/urdf", "ground.urdf")
     urdfParser = dart.utils.DartLoader()
 
     if not os.path.exists(urdf_path):
