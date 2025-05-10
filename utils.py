@@ -261,13 +261,13 @@ def plot_com_and_forces(N, com_position, com_desired, forces, t):
     
     # Plot CoM actual vs desired
     labels = ['x', 'y', 'z']
-    #for i in range(3):
-    #    axs[0].plot(time, com_position[i, :], label=f'Actual {labels[i]}')
-    #    axs[0].plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
+    for i in range(3):
+        axs[0].plot(time, com_position[i, :], label=f'Actual {labels[i]}')
+        axs[0].plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
 
-    label_curr = 2
-    axs[0].plot(time, com_position[label_curr, :], label=f'Actual {labels[label_curr]}')
-    axs[0].plot(time, com_desired[label_curr, :], '--', label=f'Desired {labels[label_curr]}')
+    #label_curr = 2
+    #axs[0].plot(time, com_position[label_curr, :], label=f'Actual {labels[label_curr]}')
+    #axs[0].plot(time, com_desired[label_curr, :], '--', label=f'Desired {labels[label_curr]}')
     
     axs[0].set_ylabel("CoM Position (m)")
     axs[0].set_title("Center of Mass (CoM) Position Over Time")

@@ -30,19 +30,19 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.285, #0.285
             'step_height': 0.06,
             'ss_duration': 20,
-            'ds_duration': 20,
+            'ds_duration': 10,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 8,
+            'total_steps': 20,
             'real_time_plot' :[], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
-            'N': 40,
+            'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
             'v_com_ref' : np.array([0.2,0,0]),
-            'theta_dot' : 0.0
+            'theta_dot' : 0.0 
         }
 
-        self.Kp = np.eye(3)*40
+        self.Kp = np.eye(3)*30
         self.Kd = np.eye(3)*0.8
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
@@ -105,6 +105,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             params = self.params,
             )
         
+        #self.params['ds_duration'] = self.footstep_planner.plan[1]['ds_duration']
         self.trajectory_generator = FootTrajectoryGenerator(
             footstep_planner = self.footstep_planner,
             params = self.params

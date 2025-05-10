@@ -37,15 +37,14 @@ class FootstepPlanner:
         initial_theta = initial_configuration['yaw']
         unicycle_pos   = (hl_foot + hr_foot) / 2.
         unicycle_theta = initial_theta
-        total_distance = 1
-        total_time = (total_distance/vref[0])/params['world_time_step']
-        ds_duration = int((total_time/total_steps)-default_ss_duration)
-        print(ds_duration)
+
+        #total_time = (ss_duration + ds_duration)*total_steps
         #vref*total_time=single_step_distance*total_steps
         #single_step_distance = vref*(ss_duration + ds_duration)
-        #ds_duration = single_step_distance/vref-ss_duration
-        #single_step_time = (ss_duration + ds_duration)*params['world_time_step']
+
         # velocità e steps vincolati
+
+
 
         # FL, FR, HL, HR  ----------------- FEET ORDER
         self.plan = []
@@ -75,18 +74,27 @@ class FootstepPlanner:
         for j in range(total_steps):
 
             ss_duration = default_ss_duration
-            #ds_duration = default_ds_duration
+            ds_duration = default_ds_duration
 
-            ## exception for first step
-            #if j == 0:
-            #    ss_duration = 0  
-            #    ds_duration = (default_ss_duration + default_ds_duration)
+            # exception for first step
+            if j == 0:
+                ss_duration = 0  
+                ds_duration = (default_ss_duration + default_ds_duration)
 
             # exception for last step TODO 
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration + ds_duration):
+            #total_duration = int(1 / params['world_time_step'])
+            #for i in range(total_duration):
+            #    if j >= 1:
+            #        unicycle_theta += omegaref * params['world_time_step']
+            #        R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
+            #                      [np.sin(unicycle_theta),   np.cos(unicycle_theta)]])
+            #        
+            #        unicycle_pos[:2] += R @ vref[:2] * params['world_time_step']
+
+            for i in range(ss_duration):
                 if j >= 1:
                     unicycle_theta += omegaref * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],

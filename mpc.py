@@ -24,7 +24,7 @@ class MPC:
             params = self.params
         )
 
-    f_min = 10  
+    f_min = 3  
     f_max = 1000  
 
     # optimization problem
@@ -161,7 +161,7 @@ class MPC:
     # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
     # sennò il doggo continua a portare il busto in avanti, sbilanciandosi TODO
     if np.array_equal(gait, np.array([1,1,1,1])):
-      v_com_gait = self.params['v_com_ref']*1
+      v_com_gait = self.params['v_com_ref']*0
     else:
       v_com_gait = self.params['v_com_ref']
     
@@ -247,7 +247,7 @@ class MPC:
     self.yaw_start = x_des_num[2,0]
 
     self.x = sol.value(self.X[:,1])
-    self.x_plot = sol.value(self.X[3:6,:])
+    self.x_plot = sol.value(self.X[9:12,:])
     self.u = sol.value(self.U[:,0]) #forces
     self.u_plot = sol.value(self.U[:,:]) #forces
 
@@ -261,25 +261,23 @@ class MPC:
       'HR_FOOT' : self.u[9:12],
     }
 
-    #forces_plot = np.array([
-    #                        self.u_plot[2,:],
-    #                        self.u_plot[5,:],
-    #                        self.u_plot[8,:],
-    #                        self.u_plot[11,:],
-    #])
+    forces_plot = np.array([
+                            self.u_plot[2,:],
+                            self.u_plot[5,:],
+                            self.u_plot[8,:],
+                            self.u_plot[11,:],
+    ])
+    forces_z = {
+      'FL_FOOT' : self.u[2],
+      'FR_FOOT' : self.u[5],
+      'HL_FOOT' : self.u[8],
+      'HR_FOOT' : self.u[11],
+    }
+    if t % 10 == 0 or t == 0:
+      log_mpc(self, t, x_des_num, swing_inverted, forces)
 
-    #forces_z = {
-    #  'FL_FOOT' : self.u[2],
-    #  'FR_FOOT' : self.u[5],
-    #  'HL_FOOT' : self.u[8],
-    #  'HR_FOOT' : self.u[11],
-    #}
-
-    #if t % 10 == 0 or t == 0:
-    #  log_mpc(self, t, x_des_num, swing_inverted, forces)
-  
-    #if t == 150:
-    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    #if t == 70:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[9:12,:self.N], forces_plot, t)
     #if t == 200:
     #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
     #if t == 150:
