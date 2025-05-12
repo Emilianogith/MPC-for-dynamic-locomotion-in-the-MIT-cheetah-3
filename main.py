@@ -27,22 +27,22 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.285, #0.285
-            'step_height': 0.06,
+            'h': 0.325, #0.285
+            'step_height': 0.01,
             'ss_duration': 20,
-            'ds_duration': 10,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 20,
+            'total_steps': 15,
             'real_time_plot' :[], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.2,0,0]),
-            'theta_dot' : 0.0 
+            'v_com_ref' : np.array([0.03,0,0]),
+            'theta_dot' : 0.0
         }
 
-        self.Kp = np.eye(3)*30
+        self.Kp = np.eye(3)*40
         self.Kd = np.eye(3)*0.8
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
@@ -75,7 +75,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         
         # Hand-tuned robot's spawning 
         #self.lite3.setPosition(5, 0.43)     # Legs straight
-        self.lite3.setPosition(5, 0.295+0.004)     # Legs bent
+        self.lite3.setPosition(5, 0.295+0.004)     # Legs bent   
 
         initial_state = self.retrieve_state()
         self.fl_sole_pos = initial_state['FL_FOOT']['pos'][3:]
@@ -97,6 +97,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'com_position' : self.com_pos,
         }
 
+
         #self.params['h'] = self.retrieve_state()['com']['pos'][2]
 
 
@@ -110,6 +111,9 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             footstep_planner = self.footstep_planner,
             params = self.params
         )
+
+
+        #self.trajectory_generator.show_trajectory(foot_to_sample='FL_FOOT', t_end=200, string_axs='x')         OCCHIO ROMPE IL CODICE!!!
 
         self.mpc = MPC(
             lite3 = self,
@@ -248,6 +252,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         v_des = swing_data['vel'][3:]
         a_des = swing_data['acc'][3:]
 
+        if p_des[2]<0:
+            p_des[2] = 0
+            v_des[2] = 0
+
         J = {
             'FL_FOOT' : self.lite3.getLinearJacobian(self.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
             'FR_FOOT' : self.lite3.getLinearJacobian(self.fr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,9:12],
@@ -293,6 +301,9 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         tau_coriolis_gravity = CG[leg_name]
         tau_ff = J_leg.transpose() @ op_space_mi @ ( a_des - J_leg_dot @ self.dq[leg_name]) + tau_coriolis_gravity
         tau = J_leg.transpose() @ ( self.Kp @ ( p_des - p_leg_curr) + self.Kd @ (v_des - v_leg_curr) ) + tau_ff
+
+        # print(f'p_des {p_des}, p_leg_curr {p_leg_curr}')
+        # print(f'v_des {v_des}, v_leg_curr {v_leg_curr}')
         return tau, p_des
 
     def retrieve_state(self):
@@ -378,9 +389,21 @@ if __name__ == "__main__":
     world = dart.simulation.World()
     lite3 = urdfParser.parseSkeleton(urdf_path)
     ground = urdfParser.parseSkeleton(ground_path)
+
+
+    # ground = dart.dynamics.Skeleton('ground')                             #EMILIANO: ho provato a crteare un nuovo ground ma è un inferno
+    # joint, body = ground.createWeldJointAndBodyNodePair()
+    # shape_node = body.createShapeNode(dart.dynamics.BoxShape([10,10,0.05]))
+    # shape_node.setOffset([0,0,-0.03])
+    # shape_node.createVisualAspect()
+    # shape_node.createCollisionAspect()
+
+
+
     world.addSkeleton(lite3)
     world.addSkeleton(ground)
-    world.setTimeStep(0.01)
+    world.setTimeStep(0.007) #0.01
+
 
               
     num_joints =lite3.getNumJoints()

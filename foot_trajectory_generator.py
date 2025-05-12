@@ -28,12 +28,12 @@ class FootTrajectoryGenerator:
         #gait = self.footstep_planner.plan[step_index]['feet_id']
         ss_duration = self.footstep_planner.plan[step_index]['ss_duration']
         
-        start_pos  = np.array(self.plan[step_index]['pos'][foot])  #check il -1
-        start_ang  = np.array(self.plan[step_index]['ang'])
+        start_pos  = np.array(self.plan[step_index -1]['pos'][foot])  #check il -1  #EMILIANO: ho messo il -1
+        start_ang  = np.array(self.plan[step_index -1]['ang'])
 
         try:
-            target_pos = np.array(self.plan[step_index+1]['pos'][foot])
-            target_ang = np.array(self.plan[step_index+1]['ang'])
+            target_pos = np.array(self.plan[step_index]['pos'][foot])        #EMILIANO: ho levato il -1
+            target_ang = np.array(self.plan[step_index]['ang'])
         except:
             target_pos = np.array(self.plan[step_index]['pos'][foot])
             target_ang = np.array(self.plan[step_index]['ang'])
@@ -51,6 +51,8 @@ class FootTrajectoryGenerator:
         t_stay = 0.05*T
 
         #print('t',t)
+
+        #print(f'start_pose {start_pos}, target_pos {target_pos}, step_index {step_index}')
 
     
         if t >= T:
@@ -86,7 +88,8 @@ class FootTrajectoryGenerator:
             'acc': np.hstack((swing_ang_acc, swing_acc))
         }
         #print('--------------------------------------------------------------')
-        #print(swing_data['pos'])
+        #print(swing_data['pos'][3:])
+        #print(swing_data['vel'])
         return swing_data
     
 
