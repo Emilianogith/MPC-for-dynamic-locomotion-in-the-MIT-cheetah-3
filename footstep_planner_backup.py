@@ -69,7 +69,7 @@ class FootstepPlanner:
                         'ds_duration': default_ds_duration,
                         'feet_id'    : [1,1,1,1]
                         })
-            return self.plan
+                
                           
         for j in range(total_steps):
 
