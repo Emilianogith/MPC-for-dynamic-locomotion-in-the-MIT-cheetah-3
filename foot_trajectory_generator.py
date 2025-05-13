@@ -47,8 +47,7 @@ class FootTrajectoryGenerator:
 
         t = time_in_step
         T = ss_duration 
-        t_swing = 0.95*T
-        t_stay = 0.05*T
+        t_swing = 0.80*T
 
         #print('t',t)
 
@@ -63,30 +62,40 @@ class FootTrajectoryGenerator:
                 'acc': np.zeros(6)
             }
         
-        # cubic polynomial for position and angle
-        A = - 2 / T**3
-        B =   3 / T**2
-        swing_pos     = start_pos + (target_pos - start_pos) * (    A * t**3 +     B * t**2)
-        swing_vel     =             (target_pos - start_pos) * (3 * A * t**2 + 2 * B * t   ) / self.dt
-        swing_acc     =             (target_pos - start_pos) * (6 * A * t    + 2 * B       ) / self.dt**2
-        swing_ang_pos = start_ang + (target_ang - start_ang) * (    A * t**3 +     B * t**2)
-        swing_ang_vel =             (target_ang - start_ang) * (3 * A * t**2 + 2 * B * t   ) / self.dt
-        swing_ang_acc =             (target_ang - start_ang) * (6 * A * t    + 2 * B       ) / self.dt**2
+        if t < T and t >= t_swing:
+            
+            swing_data = {
+                'pos': np.hstack((target_ang, target_pos)),
+                'vel': np.zeros(6),
+                'acc': np.zeros(6)
+            }
 
-        # quartic polynomial for vertical position
-        A =   16 * self.step_height / T**4
-        B = - 32 * self.step_height / T**3
-        C =   16 * self.step_height / T**2
-        swing_pos[2] =       A * t**4 +     B * t**3 +     C * t**2
-        swing_vel[2] = ( 4 * A * t**3 + 3 * B * t**2 + 2 * C * t   ) / self.dt
-        swing_acc[2] = (12 * A * t**2 + 6 * B * t    + 2 * C       ) / self.dt**2
+        else:
 
-        # assemble pose, velocity, and acceleration for swing foot
-        swing_data = {
-            'pos': np.hstack((swing_ang_pos, swing_pos)),
-            'vel': np.hstack((swing_ang_vel, swing_vel)),
-            'acc': np.hstack((swing_ang_acc, swing_acc))
-        }
+            # cubic polynomial for position and angle
+            A = - 2 / t_swing**3
+            B =   3 / t_swing**2
+            swing_pos     = start_pos + (target_pos - start_pos) * (    A * t**3 +     B * t**2)
+            swing_vel     =             (target_pos - start_pos) * (3 * A * t**2 + 2 * B * t   ) / self.dt
+            swing_acc     =             (target_pos - start_pos) * (6 * A * t    + 2 * B       ) / self.dt**2
+            swing_ang_pos = start_ang + (target_ang - start_ang) * (    A * t**3 +     B * t**2)
+            swing_ang_vel =             (target_ang - start_ang) * (3 * A * t**2 + 2 * B * t   ) / self.dt
+            swing_ang_acc =             (target_ang - start_ang) * (6 * A * t    + 2 * B       ) / self.dt**2
+
+            # quartic polynomial for vertical position
+            A =   16 * self.step_height / t_swing**4
+            B = - 32 * self.step_height / t_swing**3
+            C =   16 * self.step_height / t_swing**2
+            swing_pos[2] =       A * t**4 +     B * t**3 +     C * t**2
+            swing_vel[2] = ( 4 * A * t**3 + 3 * B * t**2 + 2 * C * t   ) / self.dt
+            swing_acc[2] = (12 * A * t**2 + 6 * B * t    + 2 * C       ) / self.dt**2
+
+            # assemble pose, velocity, and acceleration for swing foot
+            swing_data = {
+                'pos': np.hstack((swing_ang_pos, swing_pos)),
+                'vel': np.hstack((swing_ang_vel, swing_vel)),
+                'acc': np.hstack((swing_ang_acc, swing_acc))
+            }
         #print('--------------------------------------------------------------')
         #print(swing_data['pos'][3:])
         #print(swing_data['vel'])

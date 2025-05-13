@@ -102,7 +102,7 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
-           0.5 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
            5 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
            3 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
