@@ -103,10 +103,10 @@ class MPC:
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
            0.5 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           7 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           10 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           5 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           3 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           5 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
           #(0 10 500 500 10 10 0)
           #(0 0.5 5 3 1 1 0)
@@ -162,7 +162,7 @@ class MPC:
     # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
     # sennò il doggo continua a portare il busto in avanti, sbilanciandosi TODO
     if np.array_equal(gait, np.array([1,1,1,1])):
-        v_com_gait = self.params['v_com_ref']
+        v_com_gait = self.params['v_com_ref']*0
         if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
           v_com_gait = self.params['v_com_ref']*0
     else:
@@ -188,7 +188,7 @@ class MPC:
     x_des_num = np.zeros((13, self.N+1))
     x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
     x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
-    x_des_num[9:12, :] = np.ones((3, self.N+1)) * v_com_gait.reshape(3,1) # Constant velocity of CoM
+    x_des_num[9:12, :] = 1*np.ones((3, self.N+1)) * v_com_gait.reshape(3,1) # Constant velocity of CoM
     x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
     x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
     x_des_num[3:6,0] = self.com_pos_start + v_com_gait*self.delta
@@ -283,19 +283,19 @@ class MPC:
     #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
     #if t == 200:
     #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-    if t == 150:
-     plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-    if t == 500:
-     plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-     
-    if t == 700:
-     plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-
-    if t == 900:
-      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-    
-    if t == 1200:
-      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    #if t == 150:
+    # plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    #if t == 500:
+    # plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    # 
+    #if t == 700:
+    # plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+#
+    #if t == 900:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    #
+    #if t == 1200:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
 
 
     return forces

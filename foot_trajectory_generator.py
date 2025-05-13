@@ -28,12 +28,12 @@ class FootTrajectoryGenerator:
         #gait = self.footstep_planner.plan[step_index]['feet_id']
         ss_duration = self.footstep_planner.plan[step_index]['ss_duration']
         
-        start_pos  = np.array(self.plan[step_index -1]['pos'][foot])  #check il -1  #EMILIANO: ho messo il -1
-        start_ang  = np.array(self.plan[step_index -1]['ang'])
+        start_pos  = np.array(self.plan[step_index]['pos'][foot])  #check il -1  #EMILIANO: ho messo il -1
+        start_ang  = np.array(self.plan[step_index]['ang'])
 
         try:
-            target_pos = np.array(self.plan[step_index]['pos'][foot])        #EMILIANO: ho levato il -1
-            target_ang = np.array(self.plan[step_index]['ang'])
+            target_pos = np.array(self.plan[step_index+1]['pos'][foot])        #EMILIANO: ho levato il -1
+            target_ang = np.array(self.plan[step_index+1]['ang'])
         except:
             target_pos = np.array(self.plan[step_index]['pos'][foot])
             target_ang = np.array(self.plan[step_index]['ang'])

@@ -27,18 +27,18 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.325, #0.285
-            'step_height': 0.01,
+            'h': 0.28, #0.285
+            'step_height': 0.03,
             'ss_duration': 20,
             'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 15,
+            'total_steps': 13,
             'real_time_plot' :[], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.03,0,0]),
+            'v_com_ref' : np.array([0.1,0,0]),
             'theta_dot' : 0.0
         }
 
@@ -49,7 +49,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.fr_sole = lite3.getBodyNode('FR_FOOT')
         self.hl_sole = lite3.getBodyNode('HL_FOOT')
         self.hr_sole = lite3.getBodyNode('HR_FOOT')
-        self.base  = lite3.getBodyNode('TORSO')
+        self.base    = lite3.getBodyNode('TORSO')
 
         for i in range(lite3.getNumJoints()):
             joint = lite3.getJoint(i)
@@ -201,6 +201,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             state = self.retrieve_state()
 
             self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][5])
+            self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][5])
             self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][5])
             self.logger.log_data('com', state['com']['pos'][2])
             self.logger.log_data('com_des', self.params['h'])
@@ -402,7 +403,7 @@ if __name__ == "__main__":
 
     world.addSkeleton(lite3)
     world.addSkeleton(ground)
-    world.setTimeStep(0.007) #0.01
+    world.setTimeStep(0.01) #0.01
 
 
               

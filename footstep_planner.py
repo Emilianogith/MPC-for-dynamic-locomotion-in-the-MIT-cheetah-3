@@ -45,10 +45,10 @@ class FootstepPlanner:
         #params['world_time_step']*= 10
 
         # total_distance = 0.8
-# 
+
         # total_time = (total_distance/vref[0])/params['world_time_step']
         # print(f'trajectory execution time: {total_distance/vref[0]}, totatl time steps: {total_time}')
-# 
+
         # total_steps = int(total_time/(default_ds_duration + default_ss_duration))
         # 
         #ds_duration = int((total_time/total_steps)-default_ss_duration)
@@ -101,7 +101,7 @@ class FootstepPlanner:
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration+60):
+            for i in range(ss_duration):
                 if j >= 1:
                     unicycle_theta += omegaref * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
