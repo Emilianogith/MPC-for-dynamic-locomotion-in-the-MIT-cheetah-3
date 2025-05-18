@@ -34,6 +34,8 @@ class FootstepPlanner:
         hl_foot = initial_configuration['HL_FOOT'] 
         hr_foot = initial_configuration['HR_FOOT']
         initial_theta = initial_configuration['yaw']
+
+        # Let the unicycle start nemehat the Hind hip
         unicycle_pos   = (hl_foot + hr_foot) / 2.
         unicycle_theta = initial_theta
 
@@ -101,7 +103,9 @@ class FootstepPlanner:
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration):
+            half_stance_time = int(ds_duration / 2)
+            
+            for i in range(half_stance_time+80): #ss_duration):
                 if j >= 1:
                     unicycle_theta += omegaref * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],

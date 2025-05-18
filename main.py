@@ -27,13 +27,13 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.24, #0.285
+            'h': 0.325, #0.285
             'step_height': 0.03,
-            'ss_duration': 20,
-            'ds_duration': 20,
+            'ss_duration': 15,
+            'ds_duration': 30,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 12,
-            'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
+            'total_steps': 6,
+            'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
             'N': 60,
@@ -404,6 +404,7 @@ if __name__ == "__main__":
     world.addSkeleton(lite3)
     world.addSkeleton(ground)
     world.setTimeStep(0.01) #0.01
+    world.getConstraintSolver().setCollisionDetector(dart.collision.FCLCollisionDetector())
 
 
               
