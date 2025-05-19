@@ -27,7 +27,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.24, #0.285
+            'h': 0.3, #0.285
             'step_height': 0.03,
             'ss_duration': 20,
             'ds_duration': 20,
@@ -38,8 +38,8 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'µ': 0.4,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0]),
-            'theta_dot' : 0
+            'v_com_ref' : np.array([0.08,0,0]),
+            'theta_dot' : 0.0
         }
 
         self.Kp = np.eye(3)*40

@@ -86,7 +86,8 @@ class FootTrajectoryGenerator:
             A =   16 * self.step_height / t_swing**4
             B = - 32 * self.step_height / t_swing**3
             C =   16 * self.step_height / t_swing**2
-            swing_pos[2] =       A * t**4 +     B * t**3 +     C * t**2
+            E = start_pos[2]
+            swing_pos[2] =       A * t**4 +     B * t**3 +     C * t**2 + E
             swing_vel[2] = ( 4 * A * t**3 + 3 * B * t**2 + 2 * C * t   ) / self.dt
             swing_acc[2] = (12 * A * t**2 + 6 * B * t    + 2 * C       ) / self.dt**2
 

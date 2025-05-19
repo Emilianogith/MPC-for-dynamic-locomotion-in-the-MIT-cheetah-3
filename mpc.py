@@ -162,7 +162,7 @@ class MPC:
     # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
     # sennò il doggo continua a portare il busto in avanti, sbilanciandosi TODO
     if np.array_equal(gait, np.array([1,1,1,1])):
-        v_com_gait = self.params['v_com_ref']*0
+        v_com_gait = self.params['v_com_ref']
         if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
           v_com_gait = self.params['v_com_ref']*0
     else:
