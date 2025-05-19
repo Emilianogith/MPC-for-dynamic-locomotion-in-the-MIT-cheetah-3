@@ -155,14 +155,14 @@ class MPC:
 
   def solve(self, t):
 
-    gait = self.footstep_planner.get_phase_at_time(t)
 
 
     #----------------------CHECK, quando il planner è sistemato, LEVARE
     # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
     # sennò il doggo continua a portare il busto in avanti, sbilanciandosi TODO
+    gait = self.footstep_planner.get_phase_at_time(t)
     if np.array_equal(gait, np.array([1,1,1,1])):
-        v_com_gait = self.params['v_com_ref']*0
+        v_com_gait = self.params['v_com_ref']
         if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
           v_com_gait = self.params['v_com_ref']*0
     else:
@@ -188,14 +188,22 @@ class MPC:
     x_des_num = np.zeros((13, self.N+1))
     x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
     x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
-    x_des_num[9:12, :] = 1*np.ones((3, self.N+1)) * v_com_gait.reshape(3,1) # Constant velocity of CoM
+    x_des_num[9:12,0] = v_com_gait.reshape(3,) # Constant velocity of CoM
     x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
     x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
     x_des_num[3:6,0] = self.com_pos_start + v_com_gait*self.delta
     x_des_num[5,0] = self.h
 
     for i in range(1, self.N+1):
-      x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
+      x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta
+      gait = self.footstep_planner.get_phase_at_time(t+i)
+      if np.array_equal(gait, np.array([1,1,1,1])):
+        v_com_gait = self.params['v_com_ref']
+        #if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
+        #  v_com_gait = self.params['v_com_ref']*0
+      else:
+        v_com_gait = self.params['v_com_ref']   # Integrating yaw
+      x_des_num[9:12, i] = v_com_gait.reshape(3,)
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
 
     #---------------------- Parameter substitutions ----------------------

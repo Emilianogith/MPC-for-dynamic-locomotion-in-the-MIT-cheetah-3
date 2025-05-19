@@ -29,16 +29,16 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'g': -9.81,
             'h': 0.24, #0.285
             'step_height': 0.03,
-            'ss_duration': 20,
-            'ds_duration': 20,
+            'ss_duration': 40,
+            'ds_duration': 60,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 12,
-            'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
+            'total_steps': 10,
+            'real_time_plot' :[], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0]),
+            'v_com_ref' : np.array([0.12,0,0]),
             'theta_dot' : 0
         }
 

@@ -21,7 +21,7 @@ class FootstepPlanner:
     
     """
 
-    def __init__(self, initial_configuration, params, show = False):
+    def __init__(self, initial_configuration, params, show = True):
         default_ss_duration = params['ss_duration']                
         default_ds_duration = params['ds_duration']
         vref = params['v_com_ref']
@@ -101,7 +101,8 @@ class FootstepPlanner:
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration):
+
+            for i in range(ss_duration+ds_duration):
                 if j >= 1:
                     unicycle_theta += omegaref * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
