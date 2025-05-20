@@ -101,7 +101,8 @@ class FootstepPlanner:
             # to be added
 
             # move virtual unicycle
-            for i in range(ss_duration+80):
+            num_iterations = int(2*(ss_duration + ds_duration))
+            for i in range(num_iterations):
                 if j >= 1:
                     unicycle_theta += omegaref * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],

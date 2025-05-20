@@ -102,11 +102,11 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
-           1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           5 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           3 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
-           1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           40 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           100 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           40 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
           #(0 10 500 500 10 10 0)
           #(0 0.5 5 3 1 1 0)
@@ -197,6 +197,8 @@ class MPC:
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
+    print('--- predetto ---')  
+    print(x_des_num[3,1])
 
     #---------------------- Parameter substitutions ----------------------
     r1_skew_num = np.zeros((3,self.N*3))
