@@ -28,19 +28,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.params = {
             'g': -9.81,
             'h': 0.285, #0.285
-            'step_height': 0.1,
+            'step_height': 0.08,
             'ss_duration': 15,
             'ds_duration': 8,
             'world_time_step': world.getTimeStep(), # 0.01
             'total_steps': 10,
             'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
-            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
+            'graph_coord' : 0,  #Grafici relativi ai piedi : X=0, Y=1, Z=2
+            'first_swing': np.array([1,0,0,1]), #np.array([0,1,1,0]),
             'µ': 0.6,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.0,0.0,0]),
+            'v_com_ref' : np.array([0.05,0.0,0]),
             'theta_dot' : 0.0
         }
+
 
         self.Kp = np.eye(3)*250
         self.Kd = np.eye(3)*15
@@ -96,7 +98,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'yaw'  : self.yaw,
             'com_position' : self.com_pos,
         }
-
+        #grafici relativi ai piedi:
 
         #self.params['h'] = self.retrieve_state()['com']['pos'][2]
 
@@ -188,7 +190,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             else:
                 tau[leg_name], p_des = self.swing_leg_controller(leg_name)
                 
-                self.logger.log_data(leg_name+'_des', p_des[0]) #CAMBIARE PER ASSE X,Y,Z TODO
+                self.logger.log_data(leg_name+'_des', p_des[self.params['graph_coord']]) #CAMBIARE PER ASSE X,Y,Z TODO
 
 
         for task,value in joint_name.items():
@@ -200,9 +202,9 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         if not self.plot_keys == []:
             state = self.retrieve_state()
 
-            self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][3])     #CAMBIARE PER ASSE X,Y,Z TODO
-            self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][3])
-            self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][3])
+            self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][self.params['graph_coord']+3])     #CAMBIARE PER ASSE X,Y,Z TODO
+            self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][self.params['graph_coord']+3])
+            self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][self.params['graph_coord']+3])
             self.logger.log_data('com', state['com']['pos'][2])
             self.logger.log_data('com_des', self.params['h'])
             
