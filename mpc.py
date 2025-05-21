@@ -118,7 +118,7 @@ class MPC:
     cost = 0.0 * cs.sumsqr(self.U) + \
            1000 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
            1000 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           1000 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           2000 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            1000 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
            1000 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
@@ -211,8 +211,8 @@ class MPC:
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
-    print('--- predetto ---')  
-    print(x_des_num[3,1])
+    #print('--- predetto ---')  
+    #print(x_des_num[3,1])
 
     #---------------------- Parameter substitutions ----------------------
     r1_skew_num = np.zeros((3,self.N*3))

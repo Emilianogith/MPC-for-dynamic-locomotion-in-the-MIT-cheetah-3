@@ -28,21 +28,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.params = {
             'g': -9.81,
             'h': 0.285, #0.285
-            'step_height': 0.09,
+            'step_height': 0.1,
             'ss_duration': 15,
             'ds_duration': 8,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 14,
+            'total_steps': 10,
             'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
-            'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
+            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
             'µ': 0.6,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.04,0.0,0]),
+            'v_com_ref' : np.array([0.0,0.0,0]),
             'theta_dot' : 0.0
         }
 
-        self.Kp = np.eye(3)*130
+        self.Kp = np.eye(3)*250
         self.Kd = np.eye(3)*15
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
@@ -188,7 +188,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             else:
                 tau[leg_name], p_des = self.swing_leg_controller(leg_name)
                 
-                self.logger.log_data(leg_name+'_des', p_des[2])
+                self.logger.log_data(leg_name+'_des', p_des[0]) #CAMBIARE PER ASSE X,Y,Z TODO
 
 
         for task,value in joint_name.items():
@@ -200,9 +200,9 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         if not self.plot_keys == []:
             state = self.retrieve_state()
 
-            self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][5])
-            self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][5])
-            self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][5])
+            self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][3])     #CAMBIARE PER ASSE X,Y,Z TODO
+            self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][3])
+            self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][3])
             self.logger.log_data('com', state['com']['pos'][2])
             self.logger.log_data('com_des', self.params['h'])
             
@@ -216,8 +216,8 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
         #        color= [255, 0, 255], print_bodieds_of_the_object=False)
 
-        print('--- attuale ---')
-        print(state['com']['pos'][0])
+        #print('--- attuale ---')
+        #print(state['com']['pos'][0])
         self.time +=1
         return
         
