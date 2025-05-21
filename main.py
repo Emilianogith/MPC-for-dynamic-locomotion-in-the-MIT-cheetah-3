@@ -7,6 +7,7 @@ import copy
 from utils import *
 from logger import Logger
 from mpc import MPC
+import time
 
 
 class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
@@ -35,11 +36,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'total_steps': 10,
             'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'graph_coord' : 0,  #Grafici relativi ai piedi : X=0, Y=1, Z=2
-            'first_swing': np.array([1,0,0,1]), #np.array([0,1,1,0]),
+            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
             'µ': 0.6,
-            'N': 60,
+            'N': 30,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.05,0.0,0]),
+            'v_com_ref' : np.array([0.08,0.0,0]),
             'theta_dot' : 0.0
         }
 
@@ -227,8 +228,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         
     def ground_controller(self, t): #forces will be determined by the MPC
         
+        start_time = time.time()
         forces = self.mpc.solve(t)
+        solve_time = time.time() - start_time
 
+        print(f"Solve time: {solve_time:.6f} seconds")
         
         #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
         #          'FR_FOOT' : [0.0, 0.0, -60.0],
