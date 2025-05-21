@@ -42,12 +42,15 @@ class MPC:
     self.x0_param = self.opt.parameter(13)   #theta (rpy), p, omega, pdot, g
 
     # Inertia and mass parameters
-    yaw = self.x0_param[2] #self.opt.parameter(1) #MX.sym("yaw", 1)
-    Rz = vertcat(
-        horzcat(cos(yaw), -sin(yaw), 0),
-        horzcat(sin(yaw),  cos(yaw), 0),
-        horzcat(0,            0,           1)
-    )
+    Rz_list = []
+    for i in range(self.N):
+        yaw_i = self.X[2, i]  # prendi yaw dalla variabile X (stato nel tempo)
+        Rz_i = vertcat(
+            horzcat(cos(yaw_i), -sin(yaw_i), 0),
+            horzcat(sin(yaw_i),  cos(yaw_i), 0),
+            horzcat(0,           0,          1)
+        )
+        Rz_list.append(Rz_i)
 
     self.m = 9.72 #12.72
 
@@ -56,7 +59,6 @@ class MPC:
     I_body_inv[1,1] = 1/1
     I_body_inv[2,2] = 1/1
 
-    I_hat_inv = Rz @I_body_inv @ Rz.T  #cs.inv(I_hat)
 
     #self.r1 = self.opt.parameter(3)
     #self.r2 = self.opt.parameter(3)
@@ -73,17 +75,29 @@ class MPC:
     Z3 = MX.zeros(3, 3)
     Z4 = MX.zeros(3, 1)
     I3 = MX.eye(3)
-    A_row1 = horzcat(Z3, Z3, Rz, Z3, Z4)
-    A_row2 = horzcat(Z3, Z3, Z3, I3, Z4)
-    A_row3 = MX.zeros(3, 13)
-    A_row4 = MX.zeros(3, 13)
-    A_row4[2, 12] = 1
-    A_row5 = MX.zeros(1, 13)
-    self.A = vertcat(A_row1, A_row2, A_row3, A_row4, A_row5)
+    #A_row1 = horzcat(Z3, Z3, Rz, Z3, Z4)
+    #A_row2 = horzcat(Z3, Z3, Z3, I3, Z4)
+    #A_row3 = MX.zeros(3, 13)
+    #A_row4 = MX.zeros(3, 13)
+    #A_row4[2, 12] = 1
+    #A_row5 = MX.zeros(1, 13)
+    #self.A = vertcat(A_row1, A_row2, A_row3, A_row4, A_row5)
+
+    self.A = MX.zeros(13,self.N*13)
+    for i in range(self.N):
+      A_row1 = horzcat(Z3, Z3, Rz_list[i], Z3, Z4)
+      A_row2 = horzcat(Z3, Z3, Z3, I3, Z4)
+      A_row3 = MX.zeros(3, 13)
+      A_row4 = MX.zeros(3, 13)
+      A_row4[2, 12] = 1
+      A_row5 = MX.zeros(1, 13)
+      A0 = vertcat(A_row1, A_row2, A_row3, A_row4, A_row5)
+      self.A[:,13*i:13*(1+i)] = A0
 
     # Dynamic model: B
     self.B = MX.zeros(13,self.N*12)
     for i in range(self.N):
+      I_hat_inv = Rz_list[i] @ I_body_inv @ Rz_list[i].T #cs.inv(I_hat)
       B_row1 = horzcat(Z3, Z3, Z3, Z3)
       B_row2 = horzcat(Z3, Z3, Z3, Z3)
       B_row3 = horzcat(I_hat_inv@self.r1_skew[:,3*i:3*(1+i)], I_hat_inv@self.r2_skew[:,3*i:3*(1+i)], I_hat_inv@self.r3_skew[:,3*i:3*(1+i)], I_hat_inv@self.r4_skew[:,3*i:3*(1+i)])
@@ -93,7 +107,7 @@ class MPC:
       self.B[:,12*i:12*(1+i)] = B_0
 
     # Dyanamics
-    self.f = lambda x, u, i: self.A @ x + self.B[:,12*i:12*(1+i)] @ u
+    self.f = lambda x, u, i: self.A[:,13*i:13*(1+i)] @ x + self.B[:,12*i:12*(1+i)] @ u
   
     # State constraint (19)
     for i in range(self.N):
@@ -102,11 +116,11 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
-           40 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           40 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
-           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           1000 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           1000 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           1000 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           1000 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           1000 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
           #(0 10 500 500 10 10 0)
           #(0 0.5 5 3 1 1 0)
