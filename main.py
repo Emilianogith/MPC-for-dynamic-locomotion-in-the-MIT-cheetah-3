@@ -35,12 +35,12 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'world_time_step': world.getTimeStep(), # 0.01
             'total_steps': 10,
             'real_time_plot' :['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
-            'graph_coord' : 2,  #Grafici relativi ai piedi : X=0, Y=1, Z=2
-            'first_swing': np.array([1,1,1,1]), #np.array([0,1,1,0]),
+            'graph_coord' : 0,  #Grafici relativi ai piedi : X=0, Y=1, Z=2
+            'first_swing': np.array([1,0,0,1]), #np.array([0,1,1,0]),
             'µ': 0.6,
             'N': 30,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.00,0.0,0]),
+            'v_com_ref' : np.array([0.1,0.0,0]),
             'theta_dot' : 0.0
         }
 
@@ -219,8 +219,8 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
         #        color= [255, 0, 255], print_bodieds_of_the_object=False)
 
-        #print('--- attuale ---')
-        #print(state['com']['pos'][0])
+        print('--- attuale ---')
+        print(state['com']['pos'][0])
         self.time +=1
         return
         
@@ -232,7 +232,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         forces = self.mpc.solve(t)
         solve_time = time.time() - start_time
 
-        print(f"Solve time: {solve_time:.6f} seconds")
+        #print(f"Solve time: {solve_time:.6f} seconds")
         
         #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
         #          'FR_FOOT' : [0.0, 0.0, -60.0],

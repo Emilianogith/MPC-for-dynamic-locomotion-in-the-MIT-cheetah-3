@@ -211,8 +211,8 @@ class MPC:
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
-    #print('--- predetto ---')  
-    #print(x_des_num[3,1])
+    print('--- predetto ---')  
+    print(x_des_num[3,1])
 
     #---------------------- Parameter substitutions ----------------------
     r1_skew_num = np.zeros((3,self.N*3))
