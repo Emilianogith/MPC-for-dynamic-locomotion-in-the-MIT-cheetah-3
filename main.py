@@ -3,7 +3,7 @@ import os
 from footstep_planner import FootstepPlanner
 from foot_trajectory_generator import FootTrajectoryGenerator
 import numpy as np
-import copy
+import time
 from utils import *
 from logger import Logger
 from mpc import MPC
@@ -33,7 +33,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'ds_duration': 30,
             'world_time_step': world.getTimeStep(), # 0.01
             'total_steps': 6,
-            'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
+            #'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
             'N': 60,
@@ -98,15 +98,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         }
 
 
-        #self.params['h'] = self.retrieve_state()['com']['pos'][2]
-
-
         self.footstep_planner = FootstepPlanner(
             initial_configuration = self.initial,
             params = self.params,
             )
         
-        #self.params['ds_duration'] = self.footstep_planner.plan[1]['ds_duration']
         self.trajectory_generator = FootTrajectoryGenerator(
             footstep_planner = self.footstep_planner,
             params = self.params
@@ -123,11 +119,13 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         )
 
         # initialize logger and plots
-        self.plot_keys = self.params['real_time_plot']
+        self.plot_keys = {'params' : self.params,
+                         "total_sim_steps" : 300}
         
+
         self.logger = Logger(self.plot_keys)
-        if not self.plot_keys == []:
-            self.logger.initialize_plot_group(frequency=10)
+        # if not self.plot_keys == []:
+        #     self.logger.initialize_plot_group(frequency=10)
 
         #self.trajectory_generator.show_trajectory(foot_to_sample='FR_FOOT', t_start=0, t_end=800, string_axs='z')
 
@@ -183,12 +181,16 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             if gait[j] == 1:
                 tau[leg_name] = tau_ground[leg_name]
 
-                self.logger.log_data(leg_name+'_des', self.footstep_planner.plan[step_index]['pos'][leg_name][2])
+                #self.logger.log_data(leg_name+'_des', self.footstep_planner.plan[step_index]['pos'][leg_name][2])
+                p_des =  self.footstep_planner.plan[step_index]['pos'][leg_name] # x-Y des
 
             else:
                 tau[leg_name], p_des = self.swing_leg_controller(leg_name)
                 
-                self.logger.log_data(leg_name+'_des', p_des[2])
+                #self.logger.log_data(leg_name+'_des', p_des[2])
+
+            state = self.retrieve_state()
+            self.logger.log_feet_data(state[leg_name]['pos'][3:6],p_des, leg_name)
 
 
         for task,value in joint_name.items():
@@ -196,34 +198,52 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             lite3.setCommand(lite3.getDof(value[1]).getIndexInSkeleton(), tau[task][1])
             lite3.setCommand(lite3.getDof(value[2]).getIndexInSkeleton(), tau[task][2])
 
+            for n,joint in enumerate(value):
+                self.logger.log["CONTROL EFFORT"][task][joint].append(tau[task][n])
 
-        if not self.plot_keys == []:
-            state = self.retrieve_state()
 
-            self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][5])
-            self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][5])
-            self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][5])
-            self.logger.log_data('com', state['com']['pos'][2])
-            self.logger.log_data('com_des', self.params['h'])
+        # if not self.plot_keys == []:
+        #     state = self.retrieve_state()
+
+            # self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][5])
+            # self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][5])
+            # self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][5])
+            # self.logger.log_data('com', state['com']['pos'][2])
+            # self.logger.log_data('com_des', self.params['h'])
             
-            self.logger.update_plot_group(self.time)
+            # self.logger.update_plot_group(self.time)
 
+        self.logger.log['time array'].append(self.time)
         self.time +=1
+
         #print(f"Current time: {self.time}")
         #print('gait', gait)
         #print(step_index, gait)
         
 
-        state = self.retrieve_state()
+        #state = self.retrieve_state()
         #plot_com_and_forces(self.time, com_position, com_desired, forces)
         #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
         #        color= [255, 0, 255], print_bodieds_of_the_object=False)
+
+
+
+        if self.time == self.plot_keys['total_sim_steps']:
+            self.logger.save_log()
         
         return
         
     def ground_controller(self, t): #forces will be determined by the MPC
+        start_time = time.time()
         
-        forces = self.mpc.solve(t)
+        forces = self.mpc.solve(t, self.logger)
+        
+        curr_time = time.time()
+        mpc_freq = 1/(curr_time - start_time)
+         
+        # log the mpc freq
+        self.logger.log['mpc_freq'] = (self.logger.log['mpc_freq'] * self.time + mpc_freq )/(self.time +1) # moving average
+        
 
         
         #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
@@ -244,6 +264,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         tau = {}
         for leg_name in J.keys():
             tau[leg_name] = J[leg_name].T @ -forces[leg_name]
+
+            self.logger.log['FORCES'][leg_name]['x'].append(forces[leg_name][0])
+            self.logger.log['FORCES'][leg_name]['y'].append(forces[leg_name][1])
+            self.logger.log['FORCES'][leg_name]['z'].append(forces[leg_name][2])
         return tau
     
     def swing_leg_controller(self, leg_name):
@@ -378,7 +402,7 @@ if __name__ == "__main__":
 
     # URDF files loading:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3.urdf")
+    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3_backup.urdf")
     ground_path = os.path.join(current_dir, "lite3_urdf/urdf", "ground.urdf")
     urdfParser = dart.utils.DartLoader()
 

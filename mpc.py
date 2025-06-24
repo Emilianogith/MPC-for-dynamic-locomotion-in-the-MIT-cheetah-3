@@ -153,7 +153,7 @@ class MPC:
         self.opt.subject_to( -self.U[j, i] <= self.mu*self.U[j+2,i]  )
 
 
-  def solve(self, t):
+  def solve(self, t, logger):
 
     gait = self.footstep_planner.get_phase_at_time(t)
 
@@ -249,7 +249,8 @@ class MPC:
     self.com_pos_start = x_des_num[3:6,0]
     self.yaw_start = x_des_num[2,0]
 
-    self.x = sol.value(self.X[:,1])
+    #self.x = sol.value(self.X[:,1]) a che serve ????
+    self.x_log = sol.value(self.X[:-1,:])
     self.x_plot = sol.value(self.X[3:6,:])
     self.u = sol.value(self.U[:,0]) #forces
     self.u_plot = sol.value(self.U[:,:]) #forces
@@ -276,13 +277,32 @@ class MPC:
       'HL_FOOT' : self.u[8],
       'HR_FOOT' : self.u[11],
     }
-    if t % 10 == 0 or t == 0:
-      log_mpc(self, t, x_des_num, swing_inverted, forces)
+    # if t % 10 == 0 or t == 0:
+    #   log_mpc(self, t, x_des_num, swing_inverted, forces)
+
+    state_rpy_list  = state_rpy.flatten().tolist()
+    state_com_list = state_com.flatten().tolist()
+    state_av_list  = state_av.flatten().tolist()
+    state_lv_list  = state_lv.flatten().tolist()
+
+    x_curr = state_rpy_list + state_com_list + state_av_list + state_lv_list
+    # log the tracking performance 
+    logger.log_tracking_data(x_curr, x_des_num[:-1,0])
 
     if t == 70:
-     plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+      #plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+      logger.log_mpc_predictions(self.x_log, x_des_num[:-1,:], forces_plot, t)
+
+    if t == 80:
+      logger.log_mpc_predictions(self.x_log, x_des_num[:-1,:], forces_plot, t)
+
+
     if t == 200:
      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+
+
+
+
     #if t == 150:
     # plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
     if t == 500:

@@ -246,7 +246,7 @@ def display_marker(object, body_name, position_in_world_coords,
 
 def plot_com_and_forces(N, com_position, com_desired, forces, t):
     """
-    Plots center of mass positions (actual vs desired) and forces over time.
+    Plots center of mass positions (predicted vs reference) and forces over time.
     
     Parameters:
         N
@@ -262,15 +262,15 @@ def plot_com_and_forces(N, com_position, com_desired, forces, t):
     # Plot CoM actual vs desired
     labels = ['x', 'y', 'z']
     for i in range(3):
-        axs[0].plot(time, com_position[i, :], label=f'Actual {labels[i]}')
-        axs[0].plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
+        axs[0].plot(time, com_position[i, :], label=f'Predicted {labels[i]}')
+        axs[0].plot(time, com_desired[i, :], '--', label=f'Reference {labels[i]}')
 
     #label_curr = 2
     #axs[0].plot(time, com_position[label_curr, :], label=f'Actual {labels[label_curr]}')
     #axs[0].plot(time, com_desired[label_curr, :], '--', label=f'Desired {labels[label_curr]}')
     
     axs[0].set_ylabel("CoM Position (m)")
-    axs[0].set_title("Center of Mass (CoM) Position Over Time")
+    axs[0].set_title(f"Center of Mass (CoM) Prediction Over Time step at time step {t}")
     axs[0].legend()
     axs[0].grid(True)
 
@@ -284,4 +284,86 @@ def plot_com_and_forces(N, com_position, com_desired, forces, t):
     axs[1].grid(True)
 
     plt.tight_layout()
+    plt.show()
+
+
+def plot_trajectory(total_sim_steps, com_position, com_desired, time_step, title = 'Position'):
+    """
+    Plots center of mass trtajecrtory during the simulation (actual vs desired) over time.
+    
+    Parameters:
+        total_time
+        com_position: 3xN (x, y, z).
+        com_desired: 3xN (x, y, z).
+    """
+    total_time = total_sim_steps * time_step
+    time = np.arange(0, total_time, time_step)
+
+    fig, axs = plt.subplots(figsize=(12, 8))
+    
+    # Plot CoM actual vs desired
+    if title == 'orientation':
+        labels = ['roll', 'pitch', 'yaw']
+    else:
+        labels = ['x', 'y', 'z']
+    for i in range(3):
+        axs.plot(time, com_position[i, :], label=f'Actual {labels[i]}')
+        axs.plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
+
+    
+    axs.set_ylabel(f"CoM {title} (m)")
+    axs.set_xlabel("Time (s)")
+    axs.set_title(f"Center of Mass (CoM) {title} Over Time")
+    axs.legend()
+    axs.grid(True)
+
+    plt.show()
+
+
+
+
+def plot_feet(total_sim_steps, feet, feet_des, time_step, foot_name):
+    """
+    Plots center of mass trtajecrtory during the simulation (actual vs desired) over time.
+    
+    Parameters:
+        total_time
+        feet_z: 1xN (z).
+        feet_z_des: 1xN (z).
+    """
+    total_time = total_sim_steps * time_step
+    time = np.arange(0, total_time, time_step)
+
+    fig, axs = plt.subplots(figsize=(12, 8))
+
+    axs.plot(time, feet, label=f'Actual {foot_name} z')
+    axs.plot(time, feet_des, '--', label=f'Desired {foot_name} z')
+
+    
+    axs.set_ylabel("Foot Position Z (m)")
+    axs.set_xlabel("Time (s)")
+    axs.set_title(f"{foot_name} Position Z Over Time")
+    axs.legend()
+    axs.grid(True)
+
+    plt.show()
+
+
+
+def plot_forces(total_sim_steps, forces, time_step, foot_name, title=None):
+    total_time = total_sim_steps * time_step
+    time = np.arange(0, total_time, time_step)
+
+    fig, axs = plt.subplots(figsize=(12, 8))
+
+    # Plot CoM actual vs desired
+    labels = list(forces.keys())
+    for i in range(3):
+        axs.plot(time, forces[labels[i]], label=f'Actual {labels[i]}')
+    
+    axs.set_ylabel("Forces (N)")
+    axs.set_xlabel("Time (s)")
+    axs.set_title(f"{foot_name} {title} Over Time")
+    axs.legend()
+    axs.grid(True)
     plt.show()
