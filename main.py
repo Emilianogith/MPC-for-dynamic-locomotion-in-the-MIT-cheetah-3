@@ -27,18 +27,18 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.325, #0.285
+            'h': 0.285, #0.315, #0.285
             'step_height': 0.03,
             'ss_duration': 15,
-            'ds_duration': 30,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 6,
+            'total_steps': 0,
             #'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.4,
-            'N': 60,
+            'N': 80,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0]),
+            'v_com_ref' : np.array([0.0,0,0.0]),
             'theta_dot' : 0
         }
 
@@ -120,7 +120,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         # initialize logger and plots
         self.plot_keys = {'params' : self.params,
-                         "total_sim_steps" : 300}
+                         "total_sim_steps" : 400}
         
 
         self.logger = Logger(self.plot_keys)
@@ -189,6 +189,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
                 
                 #self.logger.log_data(leg_name+'_des', p_des[2])
 
+            # log feet data
             state = self.retrieve_state()
             self.logger.log_feet_data(state[leg_name]['pos'][3:6],p_des, leg_name)
 
@@ -230,6 +231,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         if self.time == self.plot_keys['total_sim_steps']:
             self.logger.save_log()
+            print('logs saved')
         
         return
         
@@ -402,7 +404,7 @@ if __name__ == "__main__":
 
     # URDF files loading:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3_backup.urdf")
+    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3_backup.urdf")       # "Lite3_backup.urdf"
     ground_path = os.path.join(current_dir, "lite3_urdf/urdf", "ground.urdf")
     urdfParser = dart.utils.DartLoader()
 
@@ -428,7 +430,7 @@ if __name__ == "__main__":
     world.addSkeleton(lite3)
     world.addSkeleton(ground)
     world.setTimeStep(0.01) #0.01
-    world.getConstraintSolver().setCollisionDetector(dart.collision.FCLCollisionDetector())
+    #world.getConstraintSolver().setCollisionDetector(dart.collision.FCLCollisionDetector())
 
 
               

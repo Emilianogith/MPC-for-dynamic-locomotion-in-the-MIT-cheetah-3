@@ -17,6 +17,7 @@ class MPC:
     self.initial = initial
     self.footstep_planner = footstep_planner
     self.com_pos_start = initial['com_position']
+    self.com_pos_start[2] = self.h
     self.yaw_start = initial['yaw']
 
     self.trajectory_generator = FootTrajectoryGenerator(
@@ -25,7 +26,7 @@ class MPC:
         )
 
     f_min = 3
-    f_max = 100  
+    f_max = 100
 
     # optimization problem
     self.opt = cs.Opti('conic')
@@ -49,7 +50,7 @@ class MPC:
         horzcat(0,            0,           1)
     )
 
-    self.m = 9.72 #12.72
+    self.m = 12 #9.72 #12.72
 
     I_body_inv = MX.zeros(3,3)
     I_body_inv[0,0] = 1/0.24
@@ -102,14 +103,14 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
-           1 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           0.5 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
            5 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
            3 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
            1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           2 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
-           0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :])
+           1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :]) 
           #(0 10 500 500 10 10 0)
-          #(0 0.5 5 3 1 1 0)
+          #(0 0.5 5 3 1 1 0)              # last (1 5 3 1 2 0)
     self.opt.minimize(cost)
 
     # initial state constraint
@@ -165,6 +166,7 @@ class MPC:
         v_com_gait = self.params['v_com_ref']
         if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
           v_com_gait = self.params['v_com_ref']*0
+          print('v_com_ref set to zero.')
     else:
       v_com_gait = self.params['v_com_ref']
     
@@ -175,6 +177,8 @@ class MPC:
     current_state = self.lite3.retrieve_state() 
     state_rpy = np.array([current_state['TORSO']['pos']]).T
     state_com = np.array([current_state['com']['pos']]).T
+
+
     state_av  = np.array([current_state['TORSO']['vel']]).T
     state_lv  = np.array([current_state['com']['vel']]).T
     state_g   = self.params['g']
@@ -190,13 +194,24 @@ class MPC:
     x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
     x_des_num[9:12, :] = 1*np.ones((3, self.N+1)) * v_com_gait.reshape(3,1) # Constant velocity of CoM
     x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
-    x_des_num[2,0] = self.yaw_start + self.params['theta_dot']*self.delta
-    x_des_num[3:6,0] = self.com_pos_start + v_com_gait*self.delta
-    x_des_num[5,0] = self.h
+    x_des_num[2,0] = self.yaw_start #+ self.params['theta_dot']*self.delta
+    x_des_num[3:6,0] = self.com_pos_start #+ v_com_gait*self.delta
+    
+    
+    
+    
+    
+    #x_des_num[5,0] = self.h              # ATTENZIONE!!!!! SE IL ROBOT PARTE DA UNA CERTA AL
+
+
+
+
+    #print('x_des_num predetti 0:', x_des_num[3:6, 0])
 
     for i in range(1, self.N+1):
       x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
       x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
+
 
     #---------------------- Parameter substitutions ----------------------
     r1_skew_num = np.zeros((3,self.N*3))
@@ -232,7 +247,7 @@ class MPC:
     # Equality constraint (21): 
     swing_inverted = np.zeros((4, self.N))
     for i in range(self.N): 
-      swing_value = self.footstep_planner.get_phase_at_time(t+i)
+      swing_value = self.footstep_planner.get_phase_at_time(t+i)    
       swing_inverted[:, i] = np.array([1, 1, 1, 1]) - np.array(swing_value)
 
     self.opt.set_value(self.swing_param, swing_inverted)
@@ -245,9 +260,17 @@ class MPC:
 
     sol = self.opt.solve()
 
-    #aggiornare variabile integrazione
-    self.com_pos_start = x_des_num[3:6,0]
-    self.yaw_start = x_des_num[2,0]
+    # update integration variables
+    # self.com_pos_start = x_des_num[3:6,0]
+    # self.yaw_start = x_des_num[2,0]
+    # print('self.com_pos_start :', self.com_pos_start )
+
+    self.com_pos_start += v_com_gait*self.delta
+    self.yaw_start +=  self.params['theta_dot']*self.delta
+
+
+    # print('dopo',self.com_pos_start)
+
 
     #self.x = sol.value(self.X[:,1]) a che serve ????
     self.x_log = sol.value(self.X[:-1,:])
@@ -289,8 +312,8 @@ class MPC:
     # log the tracking performance 
     logger.log_tracking_data(x_curr, x_des_num[:-1,0])
 
-    if t == 70:
-      #plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    if t == 0:
+      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
       logger.log_mpc_predictions(self.x_log, x_des_num[:-1,:], forces_plot, t)
 
     if t == 80:

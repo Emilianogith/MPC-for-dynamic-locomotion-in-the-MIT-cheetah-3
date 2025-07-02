@@ -302,7 +302,7 @@ def plot_trajectory(total_sim_steps, com_position, com_desired, time_step, title
     fig, axs = plt.subplots(figsize=(12, 8))
     
     # Plot CoM actual vs desired
-    if title == 'orientation':
+    if title == 'Orientation':
         labels = ['roll', 'pitch', 'yaw']
     else:
         labels = ['x', 'y', 'z']
