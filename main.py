@@ -38,12 +38,12 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'µ': 0.6,
             'N': 50,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0.0]),
+            'v_com_ref' : np.array([0.05,0,0.0]),
             'theta_dot' : 0
         }
 
-        self.Kp = np.eye(3)*10
-        self.Kd = np.eye(3)*0.8
+        self.Kp = np.eye(3)*20
+        self.Kd = np.eye(3)*2.5
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
         self.fr_sole = lite3.getBodyNode('FR_FOOT')
