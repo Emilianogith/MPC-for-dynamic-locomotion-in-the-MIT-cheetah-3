@@ -121,11 +121,11 @@
       </geometry> 
     </visual> 
     
-    <!-- <collision> 
+    <collision> 
       <geometry> 
         <sphere radius="0.01"/> 
       </geometry> 
-    </collision>  -->
+    </collision> 
   </link> 
  
 

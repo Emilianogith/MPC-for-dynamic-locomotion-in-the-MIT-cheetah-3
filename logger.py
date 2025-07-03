@@ -22,7 +22,7 @@ class Logger():
                     "sim_params": initial['params'], 
                     "total_sim_steps" : initial['total_sim_steps'],          
                     "time array" : [], 
-                    "FEET POS Z" : { 'FL_FOOT' : {'actual' : [],                # correggi sono x y z non solo z
+                    "FEET POS" : { 'FL_FOOT' : {'actual' : [],                # correggi sono x y z non solo z
                                                'des' : []},
                                  'FR_FOOT' :{'actual' : [],
                                                'des' : []},
@@ -46,8 +46,8 @@ class Logger():
         
        
     def log_feet_data(self, actual, des, leg_name):
-        self.log["FEET POS Z"][leg_name]['actual'].append(actual)
-        self.log["FEET POS Z"][leg_name]['des'].append(des)
+        self.log["FEET POS"][leg_name]['actual'].append(actual)
+        self.log["FEET POS"][leg_name]['des'].append(des)
 
     def log_mpc_predictions(self, x_log, x_des, forces_pred, t):
         self.log["MPC PREDICTIONS"].append({'time step' : t,

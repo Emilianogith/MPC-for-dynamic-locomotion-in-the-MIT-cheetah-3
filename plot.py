@@ -2,10 +2,11 @@ from utils import *
 from logger import Logger
 
 
-PLOT_MPC = True
+PLOT_MPC = False
 PLOT_TRAJ = True
-PLOT_FEET_Z = True
-PLOT_FORCES = True
+PLOT_FEET_Z = False
+PLOT_FORCES = False
+PLOT_FEET_X = False
 
 
 plot_keys = {'params' : None,
@@ -49,12 +50,21 @@ if PLOT_TRAJ:
 # plot feet z trajectory
 if PLOT_FEET_Z:
     foot_name = 'FL_FOOT'
-    foot_traj = logger.log["FEET POS Z"][foot_name]['actual']
-    foot_des_traj = logger.log["FEET POS Z"][foot_name]['des']
+    foot_traj = logger.log["FEET POS"][foot_name]['actual']
+    foot_des_traj = logger.log["FEET POS"][foot_name]['des']
     foot_z = np.array([elem[2] for elem in foot_traj]).T
     foot_z_des = np.array([elem[2] for elem in foot_des_traj]).T
 
     plot_feet(total_sim_steps, foot_z, foot_z_des, time_step, foot_name)
+
+if PLOT_FEET_X:
+    foot_name = 'FL_FOOT'
+    foot_traj = logger.log["FEET POS"][foot_name]['actual']
+    foot_des_traj = logger.log["FEET POS"][foot_name]['des']
+    foot_z = np.array([elem[0] for elem in foot_traj]).T
+    foot_z_des = np.array([elem[0] for elem in foot_des_traj]).T
+
+    plot_feet(total_sim_steps, foot_z, foot_z_des, time_step, foot_name)   
 
 
 if PLOT_FORCES:

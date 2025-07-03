@@ -95,26 +95,27 @@ class MPC:
 
     # Dyanamics
     self.f = lambda x, u, i: self.A @ x + self.B[:,12*i:12*(1+i)] @ u
+
+    # initial state constraint
+    self.opt.subject_to(self.X[:, 0] == self.x0_param)
   
     # State constraint (19)
     for i in range(self.N):
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i],i))
-      
+
+    e = 1e-5
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
-    cost = 0.0 * cs.sumsqr(self.U) + \
-           0.5 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           5 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           3 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
-           1 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           1 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
-           0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :]) 
+    cost = e * cs.sumsqr(self.U) + \
+           10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           500 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           500 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           0.0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :]) 
           #(0 10 500 500 10 10 0)
           #(0 0.5 5 3 1 1 0)              # last (1 5 3 1 2 0)
     self.opt.minimize(cost)
-
-    # initial state constraint
-    self.opt.subject_to(self.X[:, 0] == self.x0_param)
 
     # Force equality constraint (21)
     self.swing_param = self.opt.parameter(4, self.N) # inverti binario array gait
@@ -155,7 +156,6 @@ class MPC:
 
 
   def solve(self, t, logger):
-
     gait = self.footstep_planner.get_phase_at_time(t)
 
 
@@ -178,13 +178,11 @@ class MPC:
     state_rpy = np.array([current_state['TORSO']['pos']]).T
     state_com = np.array([current_state['com']['pos']]).T
 
-
     state_av  = np.array([current_state['TORSO']['vel']]).T
     state_lv  = np.array([current_state['com']['vel']]).T
     state_g   = self.params['g']
 
     self.x = np.vstack([state_rpy, state_com, state_av, state_lv, state_g])
-
 
     #---------------------- x_des definition ----------------------
     # x_des: ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
@@ -272,7 +270,9 @@ class MPC:
     # print('dopo',self.com_pos_start)
 
 
-    #self.x = sol.value(self.X[:,1]) a che serve ????
+    #self.x = sol.value(self.X[:,1])
+    #print('differenza coordinate com x0_params e self.X[:,0]')
+    #print(sol.value(self.x0_param)[3:6]-sol.value(self.X[:,0])[3:6])
     self.x_log = sol.value(self.X[:-1,:])
     self.x_plot = sol.value(self.X[3:6,:])
     self.u = sol.value(self.U[:,0]) #forces
@@ -313,23 +313,23 @@ class MPC:
     logger.log_tracking_data(x_curr, x_des_num[:-1,0])
 
     if t == 0:
-      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+      #plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
       logger.log_mpc_predictions(self.x_log, x_des_num[:-1,:], forces_plot, t)
 
     if t == 80:
       logger.log_mpc_predictions(self.x_log, x_des_num[:-1,:], forces_plot, t)
 
 
-    if t == 200:
-     plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    #if t == 200:
+     #plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
 
 
 
 
     #if t == 150:
     # plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
-    if t == 500:
-      plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
+    #if t == 500:
+    #  plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
     # 
     # if t == 700:
     #   plot_com_and_forces(self.N , self.x_plot[:,:self.N], x_des_num[3:6,:self.N], forces_plot, t)
