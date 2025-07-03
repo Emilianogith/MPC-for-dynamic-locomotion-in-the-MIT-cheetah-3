@@ -29,7 +29,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'g': -9.81,
             'h': 0.285, #0.315, #0.285
             'step_height': 0.05,
-            'ss_duration': 15,
+            'ss_duration': 20,
             'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
             'total_steps': 10,
