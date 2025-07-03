@@ -103,15 +103,15 @@ class MPC:
     for i in range(self.N):
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i],i))
 
-    e = 1e-5
+    e = 0
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = e * cs.sumsqr(self.U) + \
-           150 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           100 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           150 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
-           100 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           100 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           30 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           40 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           100 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           20 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0.0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :]) 
           #(0 10 500 500 10 10 0)
           #(0 0.5 5 3 1 1 0)              # last (1 5 3 1 2 0)
@@ -163,7 +163,7 @@ class MPC:
     # Durante il double support dovremmo mettere una velocità nulla o molto bassa (frazione della v di riferimento),
     # sennò il doggo continua a portare il busto in avanti, sbilanciandosi TODO
     if np.array_equal(gait, np.array([1,1,1,1])):
-        v_com_gait = self.params['v_com_ref']
+        v_com_gait = self.params['v_com_ref']*0.5
         if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
           v_com_gait = self.params['v_com_ref']*0
           print('v_com_ref set to zero.')
