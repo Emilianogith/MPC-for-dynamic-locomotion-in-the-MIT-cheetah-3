@@ -27,22 +27,22 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         self.ground = ground
         self.params = {
             'g': -9.81,
-            'h': 0.25, #0.315, #0.285
-            'step_height': 0.03,
+            'h': 0.285, #0.315, #0.285
+            'step_height': 0.05,
             'ss_duration': 15,
-            'ds_duration': 10,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
             'total_steps': 5,
             #'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
             'µ': 0.6,
-            'N': 60,
+            'N': 50,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.1,0,0.0]),
+            'v_com_ref' : np.array([0.02,0,0.0]),
             'theta_dot' : 0
         }
 
-        self.Kp = np.eye(3)*40
+        self.Kp = np.eye(3)*10
         self.Kd = np.eye(3)*0.8
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')

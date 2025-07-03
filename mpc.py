@@ -50,7 +50,7 @@ class MPC:
         horzcat(0,            0,           1)
     )
 
-    self.m = 12 #9.72 #12.72
+    self.m = 8.742 #12.72
 
     I_body_inv = MX.zeros(3,3)
     I_body_inv[0,0] = 1/0.24
@@ -107,11 +107,11 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = e * cs.sumsqr(self.U) + \
-           10 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
-           500 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
-           500 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
-           10 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
-           10 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           150 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :]) + \
+           100 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :]) + \
+           150 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :]) + \
+           100 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :]) + \
+           100 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
            0.0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :]) 
           #(0 10 500 500 10 10 0)
           #(0 0.5 5 3 1 1 0)              # last (1 5 3 1 2 0)
