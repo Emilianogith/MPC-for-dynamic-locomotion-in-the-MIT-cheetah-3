@@ -39,7 +39,16 @@ class FootstepPlanner:
         unicycle_pos   = (hl_foot + hr_foot) / 2.
         unicycle_theta = initial_theta
 
-
+        # gait
+        gait1 = [1, 1, 1, 1]
+        gait2 = [1, 1, 0, 1]
+        gait3 = [1, 1, 0, 0]
+        gait4 = [1, 1, 1, 0]
+        gait5 = [0, 1, 1, 1]
+        gait6 = [0, 0, 1, 1]
+        gait7 = [1, 0, 1, 1]
+        gait_galoppo = [gait1,gait2,gait3,gait4,gait5,gait6,gait7]
+        n=0
 
 
 
@@ -199,6 +208,8 @@ class FootstepPlanner:
                     'feet_id'    : [1,1,1,1]
                     })
             else:
+                support_foot = gait_galoppo[n % 7]
+                print(support_foot)
                 self.plan.append({
                     'pos'        : pos,
                     'ang'        : ang,
@@ -206,9 +217,10 @@ class FootstepPlanner:
                     'ds_duration': ds_duration,
                     'feet_id'    : support_foot
                     })
+                n+=1
             # switch support foot
-            if j > 0 and j < total_steps:
-                support_foot = np.array([1,1,1,1]) - support_foot
+            #if j > 0 and j < total_steps:
+            #    support_foot = np.array([1,1,1,1]) - support_foot
             #elif j == total_steps:                                     # se vogliamo fargli trackare la traiettoria con v costrante noin ha senso farlo stare fermo all'inizio
             #    support_foot = np.array([1,1,1,1])
 
