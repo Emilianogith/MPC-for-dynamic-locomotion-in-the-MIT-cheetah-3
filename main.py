@@ -30,17 +30,17 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.285, #0.315, #0.285
             'step_height': 0.08,
             'ss_duration': 10,
-            'ds_duration': 30,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 20,
+            'total_steps': 60,
             #'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([1,0,0,1]), #np.array([0,1,1,0]),
             'µ': 1.5,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.0,0,0.0]),
+            'v_com_ref' : np.array([0.08,0,0.0]),
             'theta_dot' : 0,
-            'log_samples' : 700
+            'log_samples' : 2000
         }
 
         self.Kp = np.eye(3)*250
