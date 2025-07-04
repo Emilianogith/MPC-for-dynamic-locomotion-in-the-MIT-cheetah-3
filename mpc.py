@@ -102,14 +102,20 @@ class MPC:
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
-           700 * cs.sumsqr(self.X[0:3,  :] - self.x_des[0:3, :])  + \
-           700 * cs.sumsqr(self.X[3:5,  :] - self.x_des[3:5, :])  + \
-           500 * cs.sumsqr(self.X[5,  :]   - self.x_des[5, :])    + \
-           500 * cs.sumsqr(self.X[6:9,  :] - self.x_des[6:9, :])  + \
-           500 * cs.sumsqr(self.X[9:12, :] - self.x_des[9:12, :]) + \
+           10000 * cs.sumsqr(self.X[0,  :] - self.x_des[0, :])  + \
+           27000 * cs.sumsqr(self.X[1,  :] - self.x_des[1, :])  + \
+           10000 * cs.sumsqr(self.X[2,  :] - self.x_des[2, :])  + \
+           270000 * cs.sumsqr(self.X[3,  :] - self.x_des[3, :])  + \
+           270000 * cs.sumsqr(self.X[4,  :] - self.x_des[4, :])  + \
+           270000 * cs.sumsqr(self.X[5,  :] - self.x_des[5, :])  + \
+           10000 * cs.sumsqr(self.X[6,  :] - self.x_des[6, :])  + \
+           10000 * cs.sumsqr(self.X[7 , :] - self.x_des[7, :])  + \
+           10000 * cs.sumsqr(self.X[8, :]  - self.x_des[8, :])  + \
+           16000 * cs.sumsqr(self.X[9, :]  - self.x_des[9, :])  + \
+           16000 * cs.sumsqr(self.X[10, :] - self.x_des[10, :]) + \
+           16000 * cs.sumsqr(self.X[11, :] - self.x_des[11, :]) + \
            0.0 * cs.sumsqr(self.X[12, :] - self.x_des[12, :]) 
-          #(0 10 500 500 10 10 0)
-          #(0 0.5 5 3 1 1 0)              # last (1 5 3 1 2 0)
+    
     self.opt.minimize(cost)
 
     # Force equality constraint (21)
