@@ -106,21 +106,24 @@
  
   <link name="FL_FOOT"> 
     <inertial> 
-      <mass value="1E-12" /> 
-      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+      <mass value="1E-2" /> 
+      <inertia ixx="1E-2" ixy="0" ixz="0" iyy="1E-2" iyz="0" izz="1E-2" /> 
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.01"/> 
+        <sphere radius="0.02"/> 
       </geometry> 
     </collision> 
   </link> 
  
+
+ 
   <joint name="FL_Ankle" type="fixed"> 
-    <origin xyz="0 0 -0.23"/> 
+    <origin xyz="0 0 -0.21"/> 
     <parent link="FL_SHANK" /> 
     <child link="FL_FOOT" /> 
   </joint> 
+
  
   <link name="FR_HIP"> 
     <inertial> 
@@ -201,21 +204,23 @@
  
   <link name="FR_FOOT"> 
     <inertial> 
-      <mass value="1E-12" /> 
-      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+      <mass value="1E-2" /> 
+      <inertia ixx="1E-2" ixy="0" ixz="0" iyy="1E-2" iyz="0" izz="1E-2" /> 
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.01"/> 
+        <sphere radius="0.02"/> 
       </geometry> 
     </collision> 
   </link> 
+
  
   <joint name="FR_Ankle" type="fixed"> 
-    <origin xyz="0 0 -0.23"/> 
+    <origin xyz="0 0 -0.21"/> 
     <parent link="FR_SHANK" /> 
     <child link="FR_FOOT" /> 
   </joint> 
+
  
   <link name="HL_HIP"> 
     <inertial> 
@@ -296,21 +301,23 @@
  
   <link name="HL_FOOT"> 
     <inertial> 
-      <mass value="1E-12" /> 
-      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+      <mass value="1E-2" /> 
+      <inertia ixx="1E-2" ixy="0" ixz="0" iyy="1E-2" iyz="0" izz="1E-2" /> 
     </inertial> 
     <collision> 
       <geometry> 
-        <sphere radius="0.01"/> 
+        <sphere radius="0.02"/> 
       </geometry> 
     </collision> 
   </link> 
+
  
   <joint name="HL_Ankle" type="fixed"> 
-    <origin xyz="0 0 -0.23"/> 
+    <origin xyz="0 0 -0.21"/> 
     <parent link="HL_SHANK" /> 
     <child link="HL_FOOT" /> 
   </joint> 
+
  
   <link name="HR_HIP"> 
     <inertial> 
@@ -370,7 +377,7 @@
     </inertial> 
     <visual> 
       <geometry> 
-        <mesh filename="../meshes/SHANK.dae" /> 
+        <mesh filename="../meshes/SHANK.dae" />
       </geometry> 
     </visual> 
     <collision> 
@@ -391,20 +398,27 @@
  
   <link name="HR_FOOT"> 
     <inertial> 
-      <mass value="1E-12" /> 
-      <inertia ixx="1E-12" ixy="0" ixz="0" iyy="1E-12" iyz="0" izz="1E-12" /> 
+      <mass value="1E-2" /> 
+      <inertia ixx="1E-2" ixy="0" ixz="0" iyy="1E-2" iyz="0" izz="1E-2" /> 
     </inertial> 
+    <visual>
+      <geometry> 
+          <sphere radius="0.02"/> 
+      </geometry> 
+    </visual>
     <collision> 
       <geometry> 
-        <sphere radius="0.01"/> 
+        <sphere radius="0.02"/> 
       </geometry> 
     </collision> 
   </link> 
+
  
   <joint name="HR_Ankle" type="fixed"> 
-    <origin xyz="0 0 -0.23"/> 
+    <origin xyz="0 0 -0.21"/> 
     <parent link="HR_SHANK" /> 
     <child link="HR_FOOT" /> 
   </joint> 
+
  
 </robot> 

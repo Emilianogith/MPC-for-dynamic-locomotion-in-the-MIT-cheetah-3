@@ -4,9 +4,9 @@ from logger import Logger
 
 PLOT_MPC = False
 PLOT_TRAJ = True
-PLOT_FEET_Z = True
-PLOT_FORCES = True
-PLOT_FEET_X = True
+PLOT_FEET_Z = False
+PLOT_FORCES = False
+PLOT_FEET_X = False
 
 
 plot_keys = {'params' : None,

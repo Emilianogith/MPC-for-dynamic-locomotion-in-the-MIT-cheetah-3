@@ -30,20 +30,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.285, #0.315, #0.285
             'step_height': 0.08,
             'ss_duration': 15,
-            'ds_duration': 100,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 5,
+            'total_steps': 40,
             #'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
             'first_swing': np.array([0,1,1,0]), #np.array([0,1,1,0]),
-            'µ': 0.4,
-            'N': 50,
+            'µ': 2,
+            'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
             'v_com_ref' : np.array([0.0,0,0.0]),
-            'theta_dot' : 0
+            'theta_dot' : 0,
+            'log_samples' : 1500
         }
 
-        self.Kp = np.eye(3)*70
-        self.Kd = np.eye(3)*0.8
+        self.Kp = np.eye(3)*250
+        self.Kd = np.eye(3)*15
 
         self.fl_sole = lite3.getBodyNode('FL_FOOT')
         self.fr_sole = lite3.getBodyNode('FR_FOOT')
@@ -120,7 +121,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
         # initialize logger and plots
         self.plot_keys = {'params' : self.params,
-                         "total_sim_steps" : 400}
+                         "total_sim_steps" : self.params['log_samples']}
         
 
         self.logger = Logger(self.plot_keys)
@@ -404,7 +405,7 @@ if __name__ == "__main__":
 
     # URDF files loading:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3_backup.urdf")       # "Lite3_backup.urdf"
+    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3.urdf")       # "Lite3_backup.urdf"
     ground_path = os.path.join(current_dir, "lite3_urdf/urdf", "ground.urdf")
     urdfParser = dart.utils.DartLoader()
 
