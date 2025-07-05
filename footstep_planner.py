@@ -3,27 +3,32 @@ from utils import *
 import matplotlib.pyplot as plt
 
 class FootstepPlanner:
-    """Brief explanation of Footstep planner in the init it is planned ...
-     spiega i passi 
+    """
+    The FootstepPlanner is responsible for generating a discrete sequence of foot placements for the Lite3 quadruped robot. 
+    It simulates a simplified locomotion model based on a virtual unicycle moving under the robot's center of mass.
 
 
-     TO DO 
+    Feet convention: FL = Front Left, FR = Front Right, HL = Hind Left, HR = Hind Right
 
-     1->piede in movimento
-     0->piede fermo non lo so 
+    Gait encoding:
+    - 1 -> foot is in contact with the ground (stance phase)
+    - 0 -> foot is swinging (swing phase)
 
-    main methods:
-    - get_step_index_at_time
-    - get_start_time
-    - get_phase_at_time
-    - is_swing                    .....
-
+    TO DO:
+    - implement the gallopping gait 
     
+    Main methods:
+    - get_step_index_at_time(time): Returns the step index active at a given time.
+    - get_start_time(step_index): Returns the start time of a given step.
+    - get_phase_at_time(time): Returns the current foot contact phase at a given time.
+    - is_swing(leg_name, gait): Checks whether a given leg is in swing phase based on the gait.
     """
 
-    def __init__(self, initial_configuration, params, show = True):
-        default_ss_duration = params['ss_duration']                
-        default_ds_duration = params['ds_duration']
+
+
+    def __init__(self, initial_configuration, params, show = False):
+        ss_duration = params['ss_duration']                
+        ds_duration = params['ds_duration']
         vref = params['v_com_ref']
         omegaref = params['theta_dot']
         total_steps = params['total_steps'] 
@@ -35,34 +40,9 @@ class FootstepPlanner:
         hr_foot = initial_configuration['HR_FOOT']
         initial_theta = initial_configuration['yaw']
 
-        # Let the unicycle start nemehat the Hind hip
-        unicycle_pos   = (hl_foot + hr_foot) / 2.
+        # Let the unicycle start under the CoM
+        unicycle_pos   = (hl_foot + hr_foot + fl_foot + fr_foot) / 4.
         unicycle_theta = initial_theta
-
-
-
-
-
-
-        #params['world_time_step']*= 10
-
-        # total_distance = 0.8
-
-        # total_time = (total_distance/vref[0])/params['world_time_step']
-        # print(f'trajectory execution time: {total_distance/vref[0]}, totatl time steps: {total_time}')
-
-        # total_steps = int(total_time/(default_ds_duration + default_ss_duration))
-        # 
-        #ds_duration = int((total_time/total_steps)-default_ss_duration)
-        # print(total_steps)
-
-
-
-        #vref*total_time=single_step_distance*total_steps
-        #single_step_distance = vref*(ss_duration + ds_duration)
-        #ds_duration = single_step_distance/vref-ss_duration
-        #single_step_time = (ss_duration + ds_duration)*params['world_time_step']
-        # velocità e steps vincolati
 
         # FL, FR, HL, HR  ----------------- FEET ORDER
         self.plan = []
@@ -83,29 +63,19 @@ class FootstepPlanner:
                 self.plan.append({
                         'pos'        : pos,
                         'ang'        : ang,
-                        'ss_duration': default_ss_duration,
-                        'ds_duration': default_ds_duration,
+                        'ss_duration': ss_duration,
+                        'ds_duration': ds_duration,
                         'feet_id'    : [1,1,1,1]
                         })
             return 
                           
         for j in range(total_steps):
 
-            ss_duration = default_ss_duration
-            ds_duration = default_ds_duration
-
-            ## exception for first step
-            #if j == 0:
-            #    ss_duration = 0  
-            #    ds_duration = (default_ss_duration + default_ds_duration)
-
             # exception for last step TODO 
             # to be added
 
-            # move virtual unicycle
-            #half_stance_time = int(ds_duration / 2)
-            
-            for i in range(ss_duration+ds_duration): #ss_duration):
+            # move virtual unicycle 
+            for i in range(ss_duration + ds_duration):
                 if j >= 1:
                     unicycle_theta += omegaref * params['world_time_step']
                     R = np.array([[np.cos(unicycle_theta), - np.sin(unicycle_theta)],
@@ -116,74 +86,70 @@ class FootstepPlanner:
             # compute step position
             torso_displacement = R @ (fl_foot[:2]-hl_foot[:2])
             leg_displacement_y = R @ (hr_foot[:2]- hl_foot[:2])/2.
-
-            # leg_displacement_x = R @ vref[:2].reshape(2,1)                        # QUESTO LEG DISPLACEMENT X CI FA FARE IL PRIMO PASSO PIU LUNGO E COMUNQUE NOIN SERVE A NIENTE 
-            # leg_displacement_x = leg_displacement_x.flatten()
-            # leg_displacement_x = [0,0]
  
 
             if j >= 1 and j < total_steps: # Lite3 walk
 
                 pos = {
                         "FL_FOOT": [
-                            self.plan[j-1]['pos']['FL_FOOT'][0] if support_foot[0] else unicycle_pos[0] + torso_displacement[0]  - leg_displacement_y[0], #tolto + leg_displacement_x[0]
-                            self.plan[j-1]['pos']['FL_FOOT'][1] if support_foot[0] else unicycle_pos[1] + torso_displacement[1]  - leg_displacement_y[1],
+                            self.plan[j-1]['pos']['FL_FOOT'][0] if support_foot[0] else unicycle_pos[0] + torso_displacement[0]/2  - leg_displacement_y[0], #tolto + leg_displacement_x[0]
+                            self.plan[j-1]['pos']['FL_FOOT'][1] if support_foot[0] else unicycle_pos[1] + torso_displacement[1]/2  - leg_displacement_y[1],
                             self.plan[j-1]['pos']['FL_FOOT'][2] if support_foot[0] else unicycle_pos[2]
                         ],      
 
                         "FR_FOOT": [
-                            self.plan[j-1]['pos']['FR_FOOT'][0] if support_foot[1] else unicycle_pos[0]  + torso_displacement[0]  + leg_displacement_y[0],
-                            self.plan[j-1]['pos']['FR_FOOT'][1] if support_foot[1] else unicycle_pos[1]  + torso_displacement[1]  + leg_displacement_y[1],
+                            self.plan[j-1]['pos']['FR_FOOT'][0] if support_foot[1] else unicycle_pos[0]  + torso_displacement[0]/2  + leg_displacement_y[0],
+                            self.plan[j-1]['pos']['FR_FOOT'][1] if support_foot[1] else unicycle_pos[1]  + torso_displacement[1]/2  + leg_displacement_y[1],
                             self.plan[j-1]['pos']['FR_FOOT'][2] if support_foot[1] else unicycle_pos[2]
                         ],
 
                         "HL_FOOT": [
-                            self.plan[j-1]['pos']['HL_FOOT'][0] if support_foot[2] else unicycle_pos[0]  - leg_displacement_y[0],
-                            self.plan[j-1]['pos']['HL_FOOT'][1] if support_foot[2] else unicycle_pos[1]  - leg_displacement_y[1],
+                            self.plan[j-1]['pos']['HL_FOOT'][0] if support_foot[2] else unicycle_pos[0]  - torso_displacement[0]/2 - leg_displacement_y[0],
+                            self.plan[j-1]['pos']['HL_FOOT'][1] if support_foot[2] else unicycle_pos[1]  - torso_displacement[1]/2 - leg_displacement_y[1],
                             self.plan[j-1]['pos']['HL_FOOT'][2] if support_foot[2] else unicycle_pos[2]
                         ],
                         
                         "HR_FOOT": [
-                            self.plan[j-1]['pos']['HR_FOOT'][0] if support_foot[3] else unicycle_pos[0] + leg_displacement_y[0], 
-                            self.plan[j-1]['pos']['HR_FOOT'][1] if support_foot[3] else unicycle_pos[1] + leg_displacement_y[1],
+                            self.plan[j-1]['pos']['HR_FOOT'][0] if support_foot[3] else unicycle_pos[0] - torso_displacement[0]/2 + leg_displacement_y[0], 
+                            self.plan[j-1]['pos']['HR_FOOT'][1] if support_foot[3] else unicycle_pos[1] - torso_displacement[1]/2 + leg_displacement_y[1],
                             self.plan[j-1]['pos']['HR_FOOT'][2] if support_foot[3] else unicycle_pos[2]
                         ],
                         "hip":[
-                            unicycle_pos[0], 
-                            unicycle_pos[1],
-                            params['h']  #check
+                            unicycle_pos[0] - torso_displacement[0]/2, 
+                            unicycle_pos[1] - torso_displacement[1]/2,
+                            params['h']  
                         ]
                     }
                 
             else: # Lite3 Stand-up
                 pos = {
                         "FL_FOOT": [
-                            unicycle_pos[0] + torso_displacement[0] - leg_displacement_y[0], 
-                            unicycle_pos[1] + torso_displacement[1] - leg_displacement_y[1],
+                            unicycle_pos[0] + torso_displacement[0]/2 - leg_displacement_y[0], 
+                            unicycle_pos[1] + torso_displacement[1]/2 - leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
 
                         "FR_FOOT": [
-                            unicycle_pos[0]  + torso_displacement[0] + leg_displacement_y[0], 
-                            unicycle_pos[1]  + torso_displacement[1] + leg_displacement_y[1],
+                            unicycle_pos[0]  + torso_displacement[0]/2 + leg_displacement_y[0], 
+                            unicycle_pos[1]  + torso_displacement[1]/2 + leg_displacement_y[1],
                             unicycle_pos[2]
                         ], 
 
                         "HL_FOOT": [
-                            unicycle_pos[0] - leg_displacement_y[0],
-                            unicycle_pos[1] - leg_displacement_y[1],
+                            unicycle_pos[0] - torso_displacement[0]/2 - leg_displacement_y[0],
+                            unicycle_pos[1] - torso_displacement[1]/2 - leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
                         
                         "HR_FOOT": [
-                            unicycle_pos[0] + leg_displacement_y[0], 
-                            unicycle_pos[1] + leg_displacement_y[1],
+                            unicycle_pos[0] - torso_displacement[0]/2 + leg_displacement_y[0], 
+                            unicycle_pos[1] - torso_displacement[1]/2 + leg_displacement_y[1],
                             unicycle_pos[2]
                         ],
                         "hip":[
-                            unicycle_pos[0], 
-                            unicycle_pos[1],
-                            params['h']  #check
+                            unicycle_pos[0] - torso_displacement[0]/2, 
+                            unicycle_pos[1] - torso_displacement[1]/2,
+                            params['h']  
                         ]
                     }
             
@@ -209,9 +175,7 @@ class FootstepPlanner:
             # switch support foot
             if j > 0 and j < total_steps:
                 support_foot = np.array([1,1,1,1]) - support_foot
-            #elif j == total_steps:                                     # se vogliamo fargli trackare la traiettoria con v costrante noin ha senso farlo stare fermo all'inizio
-            #    support_foot = np.array([1,1,1,1])
-
+    
 
         if show == True:
             x_hl_foot = [step['pos']["HL_FOOT"][0] for step in self.plan ]
@@ -250,7 +214,6 @@ class FootstepPlanner:
                 plt.plot(x_fr_foot[i], y_fr_foot[i], 'mo', label='RF Foot' if i == 0 else "")
                 plt.text(x_fr_foot[i], y_fr_foot[i], str(i), fontsize=9, verticalalignment=v_al, horizontalalignment='right')
             
-            # Impostazioni del grafico
             plt.xlabel("X Position (m)")
             plt.ylabel("Y Position (m)")
             plt.title("Footstep Plan (LB, RB, LF, RF)")

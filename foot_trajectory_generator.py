@@ -2,18 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt 
 
 class FootTrajectoryGenerator:
-    """Brief explanation of Trajectory generator ...
-     spiega i passi 
+    """ FootTrajectoryGenerator generates smooth swing trajectories for the robot's feet 
+    based on the footstep plan. It computes position, velocity, and acceleration 
+    for a given foot at any simulation time, producing natural-looking walking motion.
 
+    The class relies on a reference footstep plan and applies 
+    cubic/quartic polynomial interpolation to generate swing foot trajectories.
 
-     TO DO 
+  
 
-
-    main methods:
-    - generate_feet_trajectories_at_time
-    - show_trajectory: plot the trajectory               .....
-
-    
+    Main methods:
+    - generate_feet_trajectories_at_time(time, foot): 
+        Computes the foot's trajectory (pos, vel, acc) at a specific time.
+    - show_trajectory(foot_to_sample, t_start, t_end, string_axs): 
+        Visualizes the foot trajectory over a given time interval on a selected axis (x, y, or z).
     """
         
     def __init__(self, footstep_planner, params):
@@ -25,14 +27,13 @@ class FootTrajectoryGenerator:
     def generate_feet_trajectories_at_time(self, time, foot):
         step_index = self.footstep_planner.get_step_index_at_time(time)
         time_in_step = time - self.footstep_planner.get_start_time(step_index)
-        #gait = self.footstep_planner.plan[step_index]['feet_id']
         ss_duration = self.footstep_planner.plan[step_index]['ss_duration']
         
-        start_pos  = np.array(self.plan[step_index]['pos'][foot])  #check il -1  #EMILIANO: ho messo il -1
+        start_pos  = np.array(self.plan[step_index]['pos'][foot]) 
         start_ang  = np.array(self.plan[step_index]['ang'])
 
         try:
-            target_pos = np.array(self.plan[step_index+1]['pos'][foot])        #EMILIANO: ho levato il -1
+            target_pos = np.array(self.plan[step_index+1]['pos'][foot])        
             target_ang = np.array(self.plan[step_index+1]['ang'])
         except:
             target_pos = np.array(self.plan[step_index]['pos'][foot])
@@ -47,13 +48,8 @@ class FootTrajectoryGenerator:
 
         t = time_in_step
         T = ss_duration 
-        t_swing = 0.80*T
+        t_swing = 0.80*T            # introduced to make the trajectory end before T
 
-        #print('t',t)
-
-        #print(f'start_pose {start_pos}, target_pos {target_pos}, step_index {step_index}')
-
-    
         if t >= T:
             self.plan[step_index]['feet_id'] = [1,1,1,1]
             return {
@@ -97,9 +93,6 @@ class FootTrajectoryGenerator:
                 'vel': np.hstack((swing_ang_vel, swing_vel)),
                 'acc': np.hstack((swing_ang_acc, swing_acc))
             }
-        #print('--------------------------------------------------------------')
-        #print(swing_data['pos'][3:])
-        #print(swing_data['vel'])
         return swing_data
     
 
@@ -133,7 +126,7 @@ class FootTrajectoryGenerator:
 
         time_samples = np.delete(time_samples, removed_samples)
         
-        # Plot della traiettoria
+        # Plot 
         fig, axs = plt.subplots(3, 1, figsize=(10, 8))
 
         string_axs = string_axs.lower()

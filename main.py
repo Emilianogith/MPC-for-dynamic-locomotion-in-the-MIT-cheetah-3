@@ -10,13 +10,16 @@ from mpc import MPC
 
 
 class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
-    """Brief description of the  controller for the Lite3 robot...
+    """This controller manages the robot's behavior during the simulation. It interacts with 
+        the simulation environment to retrieve the robot's state and perform actions at each step.
 
-    TO DO
 
-        main methods:
-        - CustomPreStep(): implements a customization of the simulation built-in method ...
-        - retrieve_state(): returns the current informations about the state from the simulation
+            Main methods:
+            - CustomPreStep(): implements a customization of the simulation built-in method. 
+                               Core function in the simulation.
+            - retrieve_state(): returns the current information about the state from the simulation.
+            - ground_controller(): compute the torques based on the 3R robot model of the legs that generate the specific e-e forces.
+            - swing_leg_controller(): implements a controller for the swinging legs that track the trajoctory of the planned step.
     """
 
     def __init__(self, world, ground, lite3):
@@ -30,17 +33,16 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.285, #0.315, #0.285
             'step_height': 0.08,
             'ss_duration': 10,
-            'ds_duration': 20,
+            'ds_duration': 2,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 60,
-            #'real_time_plot' :[], #['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # ['FL_FOOT', 'FL_FOOT_des', 'com', 'com_des'], # set [] to avoid plots
-            'first_swing': np.array([1,0,0,1]), #np.array([0,1,1,0]),
+            'total_steps': 30,
+            'first_swing': np.array([1,0,0,1]), 
             'µ': 1.5,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
             'v_com_ref' : np.array([0.08,0,0.0]),
-            'theta_dot' : 0,
-            'log_samples' : 2000
+            'theta_dot' : 0.05,
+            'log_samples' : 500
         }
 
         self.Kp = np.eye(3)*250
@@ -109,9 +111,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             params = self.params
         )
 
-
-        #self.trajectory_generator.show_trajectory(foot_to_sample='FL_FOOT', t_end=200, string_axs='x')         #OCCHIO ROMPE IL CODICE!!!
-
         self.mpc = MPC(
             lite3 = self,
             initial = self.initial,
@@ -125,36 +124,12 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         
 
         self.logger = Logger(self.plot_keys)
-        # if not self.plot_keys == []:
-        #     self.logger.initialize_plot_group(frequency=10)
+      
 
-        #self.trajectory_generator.show_trajectory(foot_to_sample='FR_FOOT', t_start=0, t_end=800, string_axs='z')
 
     def customPreStep(self):
         """ This method consists in the overwriting of the built-in method to run the simulation ..."""
 
-        # print("-------------------------")
-        # collision_result = self.world.getLastCollisionResult()
-        # contacts = collision_result.getContacts()
-        
-        #foot_names = ['FL_FOOT', 'FR_FOOT', 'HL_FOOT', 'HR_FOOT']
-        # foot_forces = {name: np.zeros(3) for name in foot_names}
-    
-        # for contact in contacts:
-        #     #print()
-        #     body1 = contact.collisionObject1.getShapeFrame().getBodyNode()
-        #     body2 = contact.collisionObject2.getShapeFrame().getBodyNode()
-        #     #print()
-
-        #     #print(body2.getName())
-            
-        #     for foot in foot_names:
-        #         if body1 and body1.getName().startswith(foot.split("_")[0]) == foot:
-        #             foot_forces[foot] += contact.force
-        #         elif body2 and body2.getName() == foot:
-        #             foot_forces[foot] += contact.force
-
-        
         tau = { 'FL_FOOT' : [0, 0, 0],
                 'FR_FOOT' : [0, 0, 0],
                 'HL_FOOT' : [0, 0, 0],
@@ -181,14 +156,11 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         for j, leg_name in enumerate(tasks):
             if gait[j] == 1:
                 tau[leg_name] = tau_ground[leg_name]
-
-                #self.logger.log_data(leg_name+'_des', self.footstep_planner.plan[step_index]['pos'][leg_name][2])
                 p_des =  self.footstep_planner.plan[step_index]['pos'][leg_name] # x-Y des
 
             else:
                 tau[leg_name], p_des = self.swing_leg_controller(leg_name)
                 
-                #self.logger.log_data(leg_name+'_des', p_des[2])
 
             # log feet data
             state = self.retrieve_state()
@@ -196,7 +168,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
 
 
         for task,value in joint_name.items():
-            lite3.setCommand(lite3.getDof(value[0]).getIndexInSkeleton(), tau[task][0]) #non sò se funziona come scrittura per ottenere i valori dell'array
+            lite3.setCommand(lite3.getDof(value[0]).getIndexInSkeleton(), tau[task][0]) 
             lite3.setCommand(lite3.getDof(value[1]).getIndexInSkeleton(), tau[task][1])
             lite3.setCommand(lite3.getDof(value[2]).getIndexInSkeleton(), tau[task][2])
 
@@ -204,39 +176,21 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
                 self.logger.log["CONTROL EFFORT"][task][joint].append(tau[task][n])
 
 
-        # if not self.plot_keys == []:
-        #     state = self.retrieve_state()
-
-            # self.logger.log_data('FL_FOOT', state['FL_FOOT']['pos'][5])
-            # self.logger.log_data('HL_FOOT', state['HL_FOOT']['pos'][5])
-            # self.logger.log_data('FR_FOOT', state['FR_FOOT']['pos'][5])
-            # self.logger.log_data('com', state['com']['pos'][2])
-            # self.logger.log_data('com_des', self.params['h'])
-            
-            # self.logger.update_plot_group(self.time)
 
         self.logger.log['time array'].append(self.time)
         self.time +=1
 
-        #print(f"Current time: {self.time}")
-        #print('gait', gait)
-        #print(step_index, gait)
-        
-
-        #state = self.retrieve_state()
-        #plot_com_and_forces(self.time, com_position, com_desired, forces)
-        #display_marker(self.ground, 'ground_link', position_in_world_coords=[state['com']['pos'][0],state['com']['pos'][1],0.5+state['com']['pos'][2]],
-        #        color= [255, 0, 255], print_bodieds_of_the_object=False)
-
-
-
+        # save logs after total_sim_steps
         if self.time == self.plot_keys['total_sim_steps']:
             self.logger.save_log()
             print('logs saved')
         
         return
-        
-    def ground_controller(self, t): #forces will be determined by the MPC
+
+
+
+
+    def ground_controller(self, t): 
         start_time = time.time()
         
         forces = self.mpc.solve(t, self.logger)
@@ -246,14 +200,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
          
         # log the mpc freq
         self.logger.log['mpc_freq'] = (self.logger.log['mpc_freq'] * self.time + mpc_freq )/(self.time +1) # moving average
-        
 
-        
-        #forces = {'FL_FOOT' : [0.0, 0.0, -60.0],
-        #          'FR_FOOT' : [0.0, 0.0, -60.0],
-        #          'HL_FOOT' : [0.0, 0.0, -60.0],
-        #          'HR_FOOT' : [0.0, 0.0, -60.0],
-        #           }
 
         J = {
             'FL_FOOT' : self.lite3.getLinearJacobian(self.fl_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,6:9],
@@ -262,8 +209,6 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'HR_FOOT' : self.lite3.getLinearJacobian(self.hr_sole, inCoordinatesOf=dart.dynamics.Frame.World())[:,15:],
             }
         
-        #tau = J[leg_name].T @ -forces[leg_name]
-
         tau = {}
         for leg_name in J.keys():
             tau[leg_name] = J[leg_name].T @ -forces[leg_name]
@@ -272,6 +217,10 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             self.logger.log['FORCES'][leg_name]['y'].append(forces[leg_name][1])
             self.logger.log['FORCES'][leg_name]['z'].append(forces[leg_name][2])
         return tau
+    
+
+
+
     
     def swing_leg_controller(self, leg_name):
 
@@ -309,7 +258,7 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         
         coriolis_gravity = self.lite3.getCoriolisAndGravityForces()
 
-        CG = {                                          #se non funziona, check
+        CG = {                                        
             'FL_FOOT' : coriolis_gravity[6:9],
             'FR_FOOT' : coriolis_gravity[9:12],
             'HL_FOOT' : coriolis_gravity[12:15],
@@ -330,9 +279,9 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
         tau_ff = J_leg.transpose() @ op_space_mi @ ( a_des - J_leg_dot @ self.dq[leg_name]) + tau_coriolis_gravity
         tau = J_leg.transpose() @ ( self.Kp @ ( p_des - p_leg_curr) + self.Kd @ (v_des - v_leg_curr) ) + tau_ff
 
-        # print(f'p_des {p_des}, p_leg_curr {p_leg_curr}')
-        # print(f'v_des {v_des}, v_leg_curr {v_leg_curr}')
         return tau, p_des
+
+
 
     def retrieve_state(self):
         """
@@ -405,7 +354,7 @@ if __name__ == "__main__":
 
     # URDF files loading:
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3.urdf")       # "Lite3_backup.urdf"
+    urdf_path = os.path.join(current_dir, "lite3_urdf/urdf", "Lite3.urdf")  
     ground_path = os.path.join(current_dir, "lite3_urdf/urdf", "ground.urdf")
     urdfParser = dart.utils.DartLoader()
 
@@ -419,20 +368,9 @@ if __name__ == "__main__":
     ground = urdfParser.parseSkeleton(ground_path)
 
 
-    # ground = dart.dynamics.Skeleton('ground')                             #EMILIANO: ho provato a crteare un nuovo ground ma è un inferno
-    # joint, body = ground.createWeldJointAndBodyNodePair()
-    # shape_node = body.createShapeNode(dart.dynamics.BoxShape([10,10,0.05]))
-    # shape_node.setOffset([0,0,-0.03])
-    # shape_node.createVisualAspect()
-    # shape_node.createCollisionAspect()
-
-
-
     world.addSkeleton(lite3)
     world.addSkeleton(ground)
     world.setTimeStep(0.01) #0.01
-    #world.getConstraintSolver().setCollisionDetector(dart.collision.FCLCollisionDetector())
-
 
               
     num_joints =lite3.getNumJoints()
@@ -446,25 +384,12 @@ if __name__ == "__main__":
             body.setMass(1e-8)
             body.setInertia(default_inertia)
         total_mass += body.getMass()
-    #print("MASSA TOTALE:")
-    #print(total_mass)
-
+    
     # Initialization of the main node
     node = Lite3Controller(world, ground, lite3)
     world.setGravity([0, 0, node.params['g']])
     
-
-    # Display some markers
-    # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5],
-    #             color= [255, 255, 255], print_bodieds_of_the_object=False)
-    # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.5+0.2],
-    #             color= [255, 255, 255], print_bodieds_of_the_object=False)
-    # display_marker(ground, 'ground_link', position_in_world_coords=[0.1,0,0.5],
-    #             color= [0, 255, 0], print_bodieds_of_the_object=False)
-    # display_marker(ground, 'ground_link', position_in_world_coords=[0,0.1,0.5],
-    #             color= [255, 0, 0], print_bodieds_of_the_object=False)
-    # display_marker(ground, 'ground_link', position_in_world_coords=[0,0,0.6],
-    
+    # plot steps in the simulation
     for step in node.footstep_planner.plan:
         x_hl_foot = step['pos']["HL_FOOT"][0]
         y_hl_foot = step['pos']["HL_FOOT"][1]
@@ -486,6 +411,7 @@ if __name__ == "__main__":
                 color= [0, 255, 0], print_bodieds_of_the_object=False)
         display_marker(ground, 'ground_link', position_in_world_coords=[x_fr_foot,y_fr_foot,0.5],
                 color= [255, 0, 255], print_bodieds_of_the_object=False)    
+
 
     # create world node and add it to viewer
     viewer = dart.gui.osg.Viewer()

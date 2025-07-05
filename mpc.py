@@ -6,7 +6,24 @@ from utils import *
 from foot_trajectory_generator import FootTrajectoryGenerator
 
 class MPC:
+  """This class implements a whole-body MPC controller that computes optimal ground reaction
+    forces over a prediction horizon to track desired center of mass motion and torso orientation.
+    The controller integrates dynamics, contact constraints, and footstep planning to maintain balance
+    and produce dynamic walking.
+
+    Main Components:
+    - Dynamics model: linearized rigid-body dynamics with contact wrenches.
+    - Constraints: force equality (zero during swing), force bounds, and friction cone.
+    - Cost function: penalizes deviation from desired motion and control effort.
+    - Integration with footstep planner and swing foot trajectory generator.
+
+    Methods:
+    - solve(t, logger): solves the MPC problem at time `t` and returns force commands.
+    - update_r_num(time, leg_name, next_com): computes relative foot positions for dynamics.
+  """
+  
   def __init__(self, lite3, initial, footstep_planner, params):
+   
     # parameters
     self.params = params
     self.lite3 = lite3
@@ -37,13 +54,14 @@ class MPC:
               }
     self.opt.solver("osqp", p_opts, s_opts)
 
+    # Defining the variables
     self.U = self.opt.variable(12, self.N)
     self.X = self.opt.variable(13, self.N + 1)
 
     self.x0_param = self.opt.parameter(13)   #theta (rpy), p, omega, pdot, g
 
     # Inertia and mass parameters
-    yaw = self.x0_param[2] #self.opt.parameter(1) #MX.sym("yaw", 1)
+    yaw = self.x0_param[2] 
     Rz = vertcat(
         horzcat(cos(yaw), -sin(yaw), 0),
         horzcat(sin(yaw),  cos(yaw), 0),
@@ -57,7 +75,7 @@ class MPC:
     I_body_inv[1,1] = 1/1
     I_body_inv[2,2] = 1/1
 
-    I_hat_inv = Rz @I_body_inv @ Rz.T  #cs.inv(I_hat)
+    I_hat_inv = Rz @I_body_inv @ Rz.T  
 
     self.r1_skew = self.opt.parameter(3,self.N*3) 
     self.r2_skew = self.opt.parameter(3,self.N*3) 
@@ -98,7 +116,6 @@ class MPC:
     for i in range(self.N):
       self.opt.subject_to(self.X[:, i + 1] == self.X[:, i] + self.delta * self.f(self.X[:, i], self.U[:, i],i))
 
-    e = 1e-5
     # Cost function
     self.x_des = self.opt.parameter(13, self.N+1)
     cost = 0.0 * cs.sumsqr(self.U) + \
@@ -119,7 +136,7 @@ class MPC:
     self.opt.minimize(cost)
 
     # Force equality constraint (21)
-    self.swing_param = self.opt.parameter(4, self.N) # inverti binario array gait
+    self.swing_param = self.opt.parameter(4, self.N) 
     for i in range(self.N):
       self.opt.subject_to( self.swing_param[0,i] * self.U[0:3, i] == 0) 
       self.opt.subject_to( self.swing_param[1,i] * self.U[3:6, i] == 0)
@@ -157,15 +174,14 @@ class MPC:
 
 
   def solve(self, t, logger):
-    gait = self.footstep_planner.get_phase_at_time(t)
+       
+    v_com_gait = self.params['v_com_ref']
+    omega = self.params['theta_dot']
 
-    if np.array_equal(gait, np.array([1,1,1,1])):
-        v_com_gait = self.params['v_com_ref']
-        if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
-          v_com_gait = self.params['v_com_ref']*0
-          #print('v_com_ref set to zero.')
-    else:
-      v_com_gait = self.params['v_com_ref']
+    if self.footstep_planner.get_step_index_at_time(t) == self.params['total_steps'] - 1:
+      v_com_gait = self.params['v_com_ref']*0
+      omega = self.params['theta_dot']*0
+  
     
 
 
@@ -183,21 +199,19 @@ class MPC:
 
     #---------------------- x_des definition ----------------------
     # x_des: ( rpy - CoM, Angular Velocity, Cartesian Velocity, gravity )
-    # setting constant values
     x_des_num = np.zeros((13, self.N+1))
-    x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]] # roll, pitch state
-    x_des_num[8, :]  = np.ones((1, self.N+1)) * self.params['theta_dot'] # Constant velocity for yaw
-    x_des_num[9:12, :] = 1*np.ones((3, self.N+1)) * v_com_gait.reshape(3,1) # Constant velocity of CoM
-    x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g'] # Gravity term
+    x_des_num[:2, :] = np.ones((2, self.N+1)) * [ [self.initial['roll']], [self.initial['pitch']]]       # roll, pitch state
+    x_des_num[8, :]  = np.ones((1, self.N+1)) * omega                                                    # Constant velocity for yaw
+    x_des_num[9:12, :] = 1*np.ones((3, self.N+1)) * v_com_gait.reshape(3,1)                              # Constant velocity of CoM
+    x_des_num[12, :]   = np.ones((1, self.N+1)) * self.params['g']                                       # Gravity term
     x_des_num[2,0] = self.yaw_start 
     x_des_num[3:6,0] = self.com_pos_start 
     
 
-    #print('x_des_num predetti 0:', x_des_num[3:6, 0])
 
     for i in range(1, self.N+1):
-      x_des_num[2, i] = x_des_num[2, i-1] + self.params['theta_dot']*self.delta   # Integrating yaw
-      x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta # Integrating com_pos
+      x_des_num[2, i] = x_des_num[2, i-1] + omega*self.delta                                             # Integrating yaw
+      x_des_num[3:6, i] = x_des_num[3:6, i-1] + v_com_gait*self.delta                                    # Integrating com_pos
 
 
     #---------------------- Parameter substitutions ----------------------
@@ -226,10 +240,10 @@ class MPC:
 
 
     self.opt.set_value(self.x0_param, self.x)      # Substitution initial state
-    self.opt.set_value(self.r1_skew, r1_skew_num ) # Substitution for matrix B 
-    self.opt.set_value(self.r2_skew, r2_skew_num ) # Substitution for matrix B
-    self.opt.set_value(self.r3_skew, r3_skew_num ) # Substitution for matrix B
-    self.opt.set_value(self.r4_skew, r4_skew_num ) # Substitution for matrix B
+    self.opt.set_value(self.r1_skew, r1_skew_num ) 
+    self.opt.set_value(self.r2_skew, r2_skew_num )
+    self.opt.set_value(self.r3_skew, r3_skew_num )
+    self.opt.set_value(self.r4_skew, r4_skew_num ) 
     
     # Equality constraint (21): 
     swing_inverted = np.zeros((4, self.N))
@@ -238,22 +252,20 @@ class MPC:
       swing_inverted[:, i] = np.array([1, 1, 1, 1]) - np.array(swing_value)
 
     self.opt.set_value(self.swing_param, swing_inverted)
-    self.opt.set_value(self.x_des, x_des_num) # Substitution desired state
+    self.opt.set_value(self.x_des, x_des_num)    # Substitution desired state
     
 
     sol = self.opt.solve()
 
+    # integrate refernce trajectory over time based on constant reference values
     self.com_pos_start += v_com_gait*self.delta
-    self.yaw_start +=  self.params['theta_dot']*self.delta
+    self.yaw_start +=  omega*self.delta
 
-
-    #print('differenza coordinate com x0_params e self.X[:,0]')
-    #print(sol.value(self.x0_param)[3:6]-sol.value(self.X[:,0])[3:6])
     
     self.x_log = sol.value(self.X[:-1,:])
     self.x_plot = sol.value(self.X[3:6,:])
-    self.u = sol.value(self.U[:,0]) #forces
-    self.u_plot = sol.value(self.U[:,:]) #forces
+    self.u = sol.value(self.U[:,0])               #forces
+    self.u_plot = sol.value(self.U[:,:])
 
     self.opt.set_initial(self.U, sol.value(self.U))
     self.opt.set_initial(self.X, sol.value(self.X))
@@ -278,6 +290,7 @@ class MPC:
     state_lv_list  = state_lv.flatten().tolist()
 
     x_curr = state_rpy_list + state_com_list + state_av_list + state_lv_list
+    
     # log the tracking performance 
     logger.log_tracking_data(x_curr, x_des_num[:-1,0])
 
@@ -287,9 +300,9 @@ class MPC:
     if t == 80:
       logger.log_mpc_predictions(self.x_log, x_des_num[:-1,:], forces_plot, t)
 
-
     return forces
   
+
   def update_r_num(self, time, leg_name, next_com):
     gait = self.footstep_planner.get_phase_at_time(time)
 
