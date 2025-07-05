@@ -33,15 +33,15 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.285, #0.315, #0.285
             'step_height': 0.08,
             'ss_duration': 10,
-            'ds_duration': 2,
+            'ds_duration': 20,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 30,
+            'total_steps': 100,
             'first_swing': np.array([1,0,0,1]), 
             'µ': 1.5,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.08,0,0.0]),
-            'theta_dot' : 0.05,
+            'v_com_ref' : np.array([0.08,0.0,0.0]),
+            'theta_dot' : 0.0,
             'log_samples' : 500
         }
 
@@ -359,7 +359,7 @@ if __name__ == "__main__":
     urdfParser = dart.utils.DartLoader()
 
     if not os.path.exists(urdf_path):
-        print(f"Errore: il file {urdf_path} non esiste!")
+        print(f"Error: file {urdf_path} does not exist!")
         exit(-1)
         
     # Create the simulation world and load the robot model
@@ -383,7 +383,6 @@ if __name__ == "__main__":
         if body.getMass() == 0.0:
             body.setMass(1e-8)
             body.setInertia(default_inertia)
-        total_mass += body.getMass()
     
     # Initialization of the main node
     node = Lite3Controller(world, ground, lite3)

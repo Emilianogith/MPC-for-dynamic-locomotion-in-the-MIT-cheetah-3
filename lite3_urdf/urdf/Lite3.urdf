@@ -401,11 +401,6 @@
       <mass value="1E-2" /> 
       <inertia ixx="1E-2" ixy="0" ixz="0" iyy="1E-2" iyz="0" izz="1E-2" /> 
     </inertial> 
-    <visual>
-      <geometry> 
-          <sphere radius="0.02"/> 
-      </geometry> 
-    </visual>
     <collision> 
       <geometry> 
         <sphere radius="0.02"/> 
