@@ -52,19 +52,25 @@ if PLOT_FEET_Z:
     foot_name = 'FL_FOOT'
     foot_traj = logger.log["FEET POS"][foot_name]['actual']
     foot_des_traj = logger.log["FEET POS"][foot_name]['des']
+    ax = ['x','y','z']
+    variable = 2
+    axis = ax[variable]
     foot_z = np.array([elem[2] for elem in foot_traj]).T
     foot_z_des = np.array([elem[2] for elem in foot_des_traj]).T
 
-    plot_feet(total_sim_steps, foot_z, foot_z_des, time_step, foot_name)
+    plot_feet(total_sim_steps, foot_z, foot_z_des, time_step, foot_name,axis)
 
 if PLOT_FEET_X:
     foot_name = 'FL_FOOT'
     foot_traj = logger.log["FEET POS"][foot_name]['actual']
     foot_des_traj = logger.log["FEET POS"][foot_name]['des']
-    foot_z = np.array([elem[0] for elem in foot_traj]).T
-    foot_z_des = np.array([elem[0] for elem in foot_des_traj]).T
+    ax = ['x','y','z']
+    variable = 0
+    axis = ax[variable]
+    foot = np.array([elem[variable] for elem in foot_traj]).T
+    foot_des = np.array([elem[variable] for elem in foot_des_traj]).T
 
-    plot_feet(total_sim_steps, foot_z, foot_z_des, time_step, foot_name)   
+    plot_feet(total_sim_steps, foot, foot_des, time_step, foot_name, axis)   
 
 
 if PLOT_FORCES:

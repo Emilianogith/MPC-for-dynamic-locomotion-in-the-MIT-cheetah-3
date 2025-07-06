@@ -26,7 +26,7 @@ class FootstepPlanner:
 
 
 
-    def __init__(self, initial_configuration, params, show = False):
+    def __init__(self, initial_configuration, params, show = True):
         ss_duration = params['ss_duration']                
         ds_duration = params['ds_duration']
         vref = params['v_com_ref']

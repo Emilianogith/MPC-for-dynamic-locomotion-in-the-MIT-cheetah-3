@@ -33,16 +33,16 @@ class Lite3Controller(dart.gui.osg.RealTimeWorldNode):
             'h': 0.285, #0.315, #0.285
             'step_height': 0.08,
             'ss_duration': 10,
-            'ds_duration': 20,
+            'ds_duration': 5,
             'world_time_step': world.getTimeStep(), # 0.01
-            'total_steps': 100,
-            'first_swing': np.array([1,0,0,1]), 
-            'µ': 1.5,
+            'total_steps': 20,
+            'first_swing': np.array([0,0,1,1]), 
+            'µ': 1,
             'N': 60,
             'dof': self.lite3.getNumDofs(), # 18
-            'v_com_ref' : np.array([0.08,0.0,0.0]),
+            'v_com_ref' : np.array([0.18,0.0,0.0]),
             'theta_dot' : 0.0,
-            'log_samples' : 500
+            'log_samples' : 1000
         }
 
         self.Kp = np.eye(3)*250
@@ -414,7 +414,7 @@ if __name__ == "__main__":
 
     # create world node and add it to viewer
     viewer = dart.gui.osg.Viewer()
-    node.setTargetRealTimeFactor(0.75) # speed up the visualization by 10x
+    node.setTargetRealTimeFactor(1) # speed up the visualization by 10x
     viewer.addWorldNode(node)
 
     viewer.setUpViewInWindow(0, 0, 1270, 720)

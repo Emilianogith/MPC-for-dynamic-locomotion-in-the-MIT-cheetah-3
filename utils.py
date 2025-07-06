@@ -145,14 +145,15 @@ def plot_trajectory(total_sim_steps, com_position, com_desired, time_step, title
     # Plot CoM actual vs desired
     if title == 'Orientation':
         labels = ['roll', 'pitch', 'yaw']
+        axs.set_ylabel(f"CoM {title} (rad)")
     else:
         labels = ['x', 'y', 'z']
+        axs.set_ylabel(f"CoM {title} (m)")
     for i in range(3):
         axs.plot(time, com_position[i, :], label=f'Actual {labels[i]}')
         axs.plot(time, com_desired[i, :], '--', label=f'Desired {labels[i]}')
 
     
-    axs.set_ylabel(f"CoM {title} (m)")
     axs.set_xlabel("Time (s)")
     axs.set_title(f"Center of Mass (CoM) {title} Over Time")
     axs.legend()
@@ -162,7 +163,7 @@ def plot_trajectory(total_sim_steps, com_position, com_desired, time_step, title
 
 
 
-def plot_feet(total_sim_steps, feet, feet_des, time_step, foot_name):
+def plot_feet(total_sim_steps, feet, feet_des, time_step, foot_name, axis):
     """
     Plots center of mass trtajecrtory during the simulation (actual vs desired) over time.
     
@@ -176,13 +177,13 @@ def plot_feet(total_sim_steps, feet, feet_des, time_step, foot_name):
 
     fig, axs = plt.subplots(figsize=(12, 8))
 
-    axs.plot(time, feet, label=f'Actual {foot_name} z')
-    axs.plot(time, feet_des, '--', label=f'Desired {foot_name} z')
+    axs.plot(time, feet, label=f'Actual {foot_name} {axis}')
+    axs.plot(time, feet_des, '--', label=f'Desired {foot_name} {axis}')
 
     
-    axs.set_ylabel("Foot Position Z (m)")
+    axs.set_ylabel(f"Foot Position {axis} (m)")
     axs.set_xlabel("Time (s)")
-    axs.set_title(f"{foot_name} Position Z Over Time")
+    axs.set_title(f"{foot_name} Position {axis} Over Time")
     axs.legend()
     axs.grid(True)
 
