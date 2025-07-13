@@ -19,7 +19,11 @@ achieving stable and accurate locomotion.
 ```
 .
 ├── lite3_urdf/                   # URDF model of the Lite3 robot
-├── paper/                        # Reference materials and utils for README.md
+├── paper/                        # Reference materials 
+├── presentation/                 
+   ├── presentation_UR            # PResentation of the project
+   ├── report.pdf                 # Detailed report of the project
+   ├── material.zip               # Contain plot and videos
 ├── src/
    ├── foot_trajectory_generator.py  # Swing trajectory generation
    ├── footstep_planner.py           # Main footstep planner script
@@ -58,12 +62,12 @@ press space bar to start the simulation
 
 ### 🦶 Footstep Planner
 
-The footstep planner is based on a virtual unicycle model located under the robot's center of mass (CoM). Foot placements are computed by integrating a constant reference velocity $\mathbf{v}_{\text{ref}}$ and angular velocity $\omega_{\text{ref}}$ over time.
+The footstep planner is based on a virtual unicycle model located under the robot's center of mass (CoM). Foot placements are computed by integrating a constant reference velocity $v_{\text{ref}}$ and angular velocity $\omega_{\text{ref}}$ over time.
 
 The unicycle motion evolves as:
 
 $$
-\mathbf{p}_{\text{COM}}(t+\Delta t) = \mathbf{p}_{\text{COM}}(t) + R(\theta) \cdot \mathbf{v}_{\text{ref}} \cdot \Delta t
+\mathbf{p}_{\text{CoM}}(t+\Delta t) = \mathbf{p}_{\text{CoM}}(t) + R(\theta) \cdot \mathbf{v}_{\text{ref}} \cdot \Delta t
 $$
 
 $$
@@ -81,7 +85,7 @@ Swing trajectories are generated using polynomial interpolation:
 - **Cubic interpolation** in the horizontal plane:
 
 $$
-\mathbf{p}(t) = \mathbf{p}_i + (\mathbf{p}_f - \mathbf{p}_i)\left(-2\left(\frac{t}{T}\right)^3 + 3\left(\frac{t}{T}\right)^2\right), \quad t \in [0, T]
+p(t) = p_i + (p_f - p_i)\left(-2\left(\frac{t}{T}\right)^3 + 3\left(\frac{t}{T}\right)^2\right), \quad t \in [0, T]
 $$
 
 - **Quartic interpolation** for the vertical (z) axis:
@@ -108,7 +112,7 @@ The MPC computes optimal ground reaction forces over a finite time horizon using
 
 ### 🦿 Controllers
 
-#### 🟩 Ground Controller
+#### Ground Controller
 
 The ground controller transforms the optimal ground reaction force $f_i$ for each stance leg into joint torques:
 
@@ -121,12 +125,15 @@ Where:
 - $R_i$ is the rotation from robot to world frame,
 - $\tau_i$ is the joint torque vector.
 
-#### 🟦 Swing Controller
+#### Swing Controller
 
 The swing controller combines feedback and feedforward terms to track the foot trajectory:
 
 $$
-\tau_i = J_i^\top \left[ K_p(\mathbf{p}_{i,\text{ref}} - \mathbf{p}_i) + K_d(\mathbf{v}_{i,\text{ref}} - \mathbf{v}_i) \right] + \tau_{i,\text{ff}}
+\tau_i = J_i^\top \Big( 
+    K_p \cdot (p_{i,\text{ref}} - p_i) 
+  + K_d \cdot (v_{i,\text{ref}} - v_i) 
+\Big) + \tau_{i,\text{ff}}
 $$
 
 Where the feedforward torque is:
@@ -143,10 +150,11 @@ This ensures smooth and accurate motion tracking during the swing phase.
 ## 📊 Results
 
 Simulations are conducted in DartPy, evaluating:
-- Trajectory tracking (COM position and orientation)
+- Trajectory tracking (CoM position and orientation)
 - Gait stability (trot, pace)
 - Foot placement accuracy
 - Control frequency and force constraints
+More details on tracking performance in presentation/material.zip
 
 
 | Trotting | Pronking |
@@ -163,6 +171,7 @@ Simulations are conducted in DartPy, evaluating:
 ## 🛠️ Known Issues
 
 - Occasional ground penetration, problem arise in simulation side
+- Visual meshes for the robot had to be manually rotated to ensure proper visualization in simulation.
 
 ---
 
