@@ -67,7 +67,7 @@ The footstep planner is based on a virtual unicycle model located under the robo
 The unicycle motion evolves as:
 
 $$
-\mathbf{p}_{\text{CoM}}(t+\Delta t) = \mathbf{p}_{\text{CoM}}(t) + R(\theta) \cdot \mathbf{v}_{\text{ref}} \cdot \Delta t
+p_{\text{CoM}}(t+\Delta t) = p_{\text{CoM}}(t) + R(\theta) \cdot v_{\text{ref}} \cdot \Delta t
 $$
 
 $$
@@ -130,16 +130,13 @@ Where:
 The swing controller combines feedback and feedforward terms to track the foot trajectory:
 
 $$
-\tau_i = J_i^\top \Big( 
-    K_p \cdot (p_{i,\text{ref}} - p_i) 
-  + K_d \cdot (v_{i,\text{ref}} - v_i) 
-\Big) + \tau_{i,\text{ff}}
+\tau_i = J_i^\top \Big(  K_p \cdot (p_{i,\text{ref}} - p_i) + K_d \cdot (v_{i,\text{ref}} - v_i) \Big) + \tau_{i,\text{ff}}
 $$
 
 Where the feedforward torque is:
 
 $$
-\tau_{i,\text{ff}} = J_i^\top M_i \left( \mathbf{a}_{i,\text{ref}} - \dot{J}_i \dot{q}_i \right) + C_i \dot{q}_i + G_i
+\tau_{i,\text{ff}} = J_i^\top M_i \left( a_{i,\text{ref}} - \dot{J}_i \dot{q}_i \right) + C_i \dot{q}_i + G_i
 $$
 
 This ensures smooth and accurate motion tracking during the swing phase.
@@ -154,16 +151,17 @@ Simulations are conducted in DartPy, evaluating:
 - Gait stability (trot, pace)
 - Foot placement accuracy
 - Control frequency and force constraints
+
 More details on tracking performance in presentation/material.zip
 
 
 | Trotting | Pronking |
 |----------|----------|
-| ![Trotting](paper/trotting.gif) | ![Pronking](paper/pronking.gif) |
+| ![Trotting](presentation/trotting.gif) | ![Pronking](presentation/pronking.gif) |
 
 | Ambling | Galopping |
 |---------|-----------|
-| ![Ambling](paper/ambling.gif) | ![Galopping](paper/galopping.gif) |
+| ![Ambling](presentation/ambling.gif) | ![Galopping](presentation/galopping.gif) |
 
 
 ---
