@@ -2,7 +2,15 @@
 
 ## 📌 Abstract
 
-This project simulates the locomotion of the **Lite3 quadruped robot** using **Model Predictive Control (MPC)** and rigid-body dynamics. The control architecture includes a footstep planner, a swing trajectory generator, and dedicated controllers for both ground and swing legs. The entire system is validated using the **DartPy** simulation framework.
+This work presents the development of a simulated quadruped locomotion system controlled through
+Model Predictive Control. To formulate the problem as a convex Quadratic Program suitable for MPC,
+several simplifying assumptions were introduced to approximate the robot’s dynamics.
+Simulations were performed using the Lite3 quadruped robot from DeepRobotics. A dedicated footstep
+planner, along with ground and swing leg controllers, was implemented and kept as simple as possible
+to reduce the overall complexity of the work while maintaining effective locomotion behavior.
+The simulation results demonstrate that the MPC framework can successfully control quadruped walking.
+Various gaits were tested under different conditions, showing that the controller is robust and capable of
+achieving stable and accurate locomotion.
 
 ---
 
@@ -11,15 +19,15 @@ This project simulates the locomotion of the **Lite3 quadruped robot** using **M
 ```
 .
 ├── lite3_urdf/                   # URDF model of the Lite3 robot
-├── paper/                        # Reference materials 
-├── foot_trajectory_generator.py  # Swing trajectory generation
-├── footstep_planner.py           # Main footstep planner script
-├── footstep_planner_backup.py    # Backup version of the planner
-├── single_leg_controller.py      # Swing leg controller
-├── mpc.py                        # MPC optimization logic
-├── main.py                       # Main entry point for simulation
-├── utils.py                      # Utility functions
-├── logger.py                     # Logging utilities
+├── paper/                        # Reference materials and utils for README.md
+├── src/
+   ├── foot_trajectory_generator.py  # Swing trajectory generation
+   ├── footstep_planner.py           # Main footstep planner script
+   ├── mpc.py                        # MPC optimization logic
+   ├── main.py                       # Main entry point for simulation
+   ├── utils.py                      # Utility functions
+   ├── logger.py                     # Logging utilities
+   ├── plot.py                       # Plot some data decided into the script
 ├── README.md                     # Project documentation
 ```
 
@@ -34,7 +42,12 @@ This project simulates the locomotion of the **Lite3 quadruped robot** using **M
 
 2. **Run MPC simulation in DartPy:**
    ```bash
-   python3 sim/main_simulation.py
+   python3 main.py
+   ```
+
+3. **Plot some simulation data:**
+   ```bash
+   python3 plot.py
    ```
 
 press space bar to start the simulation
@@ -45,25 +58,85 @@ press space bar to start the simulation
 
 ### 🦶 Footstep Planner
 
-Implements a unicycle-based model to generate a sequence of footsteps using `v_ref` and `omega_ref`. It defines gaits using swing/stay contact patterns and supports trajectory visualization.
+The footstep planner is based on a virtual unicycle model located under the robot's center of mass (CoM). Foot placements are computed by integrating a constant reference velocity $\mathbf{v}_{\text{ref}}$ and angular velocity $\omega_{\text{ref}}$ over time.
+
+The unicycle motion evolves as:
+
+$$
+\mathbf{p}_{\text{COM}}(t+\Delta t) = \mathbf{p}_{\text{COM}}(t) + R(\theta) \cdot \mathbf{v}_{\text{ref}} \cdot \Delta t
+$$
+
+$$
+\theta(t+\Delta t) = \theta(t) + \omega_{\text{ref}} \cdot \Delta t
+$$
+
+This strategy allows generating different gait patterns by defining alternating support and swing phases for the legs.
+
+---
 
 ### 📈 Trajectory Generator
 
-Interpolates swing foot trajectories using:
-- Cubic polynomials (x, y)
-- Quartic polynomials (z)
+Swing trajectories are generated using polynomial interpolation:
+
+- **Cubic interpolation** in the horizontal plane:
+
+$$
+\mathbf{p}(t) = \mathbf{p}_i + (\mathbf{p}_f - \mathbf{p}_i)\left(-2\left(\frac{t}{T}\right)^3 + 3\left(\frac{t}{T}\right)^2\right), \quad t \in [0, T]
+$$
+
+- **Quartic interpolation** for the vertical (z) axis:
+
+$$
+z(t) = at^4 + bt^3 + ct^2, \quad t \in [0, T]
+$$
+
+with coefficients:
+
+$$
+a = \frac{16h}{T^4}, \quad b = -\frac{32h}{T^3}, \quad c = \frac{16h}{T^2}
+$$
+
+These trajectories ensure smooth lift-off and landing with zero velocity and acceleration at boundaries.
+
+---
 
 ### 🔄 Model Predictive Controller (MPC)
 
-Solves a convex QP problem at every time step:
-- Inputs: desired velocity/pose over horizon
-- Outputs: ground reaction forces
-- Constraints: dynamics, swing leg forces = 0, friction cone
+The MPC computes optimal ground reaction forces over a finite time horizon using a simplified rigid-body model. It enforces dynamic feasibility, swing/stance contact constraints, and friction cone conditions.
+
+---
 
 ### 🦿 Controllers
 
-- **Ground Controller**: maps MPC forces to joint torques using Jacobian transpose.
-- **Swing Controller**: computes desired foot positions during swing phase.
+#### 🟩 Ground Controller
+
+The ground controller transforms the optimal ground reaction force $f_i$ for each stance leg into joint torques:
+
+$$
+\tau_i = J_i^\top R_i^\top f_i
+$$
+
+Where:
+- $J_i$ is the foot Jacobian,
+- $R_i$ is the rotation from robot to world frame,
+- $\tau_i$ is the joint torque vector.
+
+#### 🟦 Swing Controller
+
+The swing controller combines feedback and feedforward terms to track the foot trajectory:
+
+$$
+\tau_i = J_i^\top \left[ K_p(\mathbf{p}_{i,\text{ref}} - \mathbf{p}_i) + K_d(\mathbf{v}_{i,\text{ref}} - \mathbf{v}_i) \right] + \tau_{i,\text{ff}}
+$$
+
+Where the feedforward torque is:
+
+$$
+\tau_{i,\text{ff}} = J_i^\top M_i \left( \mathbf{a}_{i,\text{ref}} - \dot{J}_i \dot{q}_i \right) + C_i \dot{q}_i + G_i
+$$
+
+This ensures smooth and accurate motion tracking during the swing phase.
+
 
 ---
 
@@ -75,6 +148,16 @@ Simulations are conducted in DartPy, evaluating:
 - Foot placement accuracy
 - Control frequency and force constraints
 
+
+| Trotting | Pronking |
+|----------|----------|
+| ![Trotting](paper/trotting.gif) | ![Pronking](paper/pronking.gif) |
+
+| Ambling | Galopping |
+|---------|-----------|
+| ![Ambling](paper/ambling.gif) | ![Galopping](paper/galopping.gif) |
+
+
 ---
 
 ## 🛠️ Known Issues
@@ -85,7 +168,9 @@ Simulations are conducted in DartPy, evaluating:
 
 ## 📚 References
 
-- [Di Carlo et al. (2018). Dynamic Locomotion in the MIT Cheetah 3 Through Convex Model-Predictive Control](https://ieeexplore.ieee.org/document/8594448)
+- [Di Carlo et al. (2018). *Dynamic Locomotion in the MIT Cheetah 3 Through Convex Model-Predictive Control*. IEEE/RSJ IROS, Madrid, Spain.](https://ieeexplore.ieee.org/document/8594448)
+- [Stark et al. (2025). *Benchmarking Different QP Formulations and Solvers for Dynamic Quadrupedal Walking*. arXiv:2502.01329v1 [cs.RO]](https://arxiv.org/abs/2502.01329)
+- [Zhu (GitHub). *Lite 3 URDF Configuration*. TopHillRobotics Repository](https://github.com/TopHillRobotics/quadruped-robot/blob/mpc-wbc/quadruped/config/lite3/lite3_robot.yaml)
 
 ---
 
