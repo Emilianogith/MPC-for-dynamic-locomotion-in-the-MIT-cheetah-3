@@ -12,6 +12,14 @@ The simulation results demonstrate that the MPC framework can successfully contr
 Various gaits were tested under different conditions, showing that the controller is robust and capable of
 achieving stable and accurate locomotion.
 
+| Trotting | Pronking |
+|----------|----------|
+| ![Trotting](presentation/trotting.gif) | ![Pronking](presentation/pronking.gif) |
+
+| Ambling | Galopping |
+|---------|-----------|
+| ![Ambling](presentation/ambling.gif) | ![Galopping](presentation/galopping.gif) |
+
 ---
 
 ## 📁 Repository Structure
@@ -19,42 +27,20 @@ achieving stable and accurate locomotion.
 ```
 .
 ├── lite3_urdf/                   # URDF model of the Lite3 robot
-├── paper/                        # Reference materials 
 ├── presentation/                 
-   ├── presentation_UR            # PResentation of the project
-   ├── report.pdf                 # Detailed report of the project
-   ├── material.zip               # Contain plot and videos
+   ├── UR_presentation            # Presentation of the project
+   ├── UR_report.pdf              # Detailed report of the project
+   ├── UR_paper.pdf               # Reference paper
 ├── src/
+   ├── main.py                       # Runnable: Main entry point for simulation
+   ├── plot.py                       # Runnable: Plot some data decided into the script
    ├── foot_trajectory_generator.py  # Swing trajectory generation
    ├── footstep_planner.py           # Main footstep planner script
    ├── mpc.py                        # MPC optimization logic
-   ├── main.py                       # Main entry point for simulation
    ├── utils.py                      # Utility functions
    ├── logger.py                     # Logging utilities
-   ├── plot.py                       # Plot some data decided into the script
 ├── README.md                     # Project documentation
 ```
-
----
-
-## 🚀 How to Run
-
-1. **Install dependencies:**
-   ```bash
-   pip install numpy matplotlib osqp dartpy
-   ```
-
-2. **Run MPC simulation in DartPy:**
-   ```bash
-   python3 main.py
-   ```
-
-3. **Plot some simulation data:**
-   ```bash
-   python3 plot.py
-   ```
-
-press space bar to start the simulation
 
 ---
 
@@ -144,32 +130,14 @@ This ensures smooth and accurate motion tracking during the swing phase.
 
 ---
 
-## 📊 Results
 
-Simulations are conducted in DartPy, evaluating:
-- Trajectory tracking (CoM position and orientation)
-- Gait stability (trot, pace)
-- Foot placement accuracy
-- Control frequency and force constraints
-
-More details on tracking performance in presentation/material.zip
-
-
-| Trotting | Pronking |
-|----------|----------|
-| ![Trotting](presentation/trotting.gif) | ![Pronking](presentation/pronking.gif) |
-
-| Ambling | Galopping |
-|---------|-----------|
-| ![Ambling](presentation/ambling.gif) | ![Galopping](presentation/galopping.gif) |
-
-
----
-
-## 🛠️ Known Issues
+## 🛠️ Other
 
 - Occasional ground penetration, problem arise in simulation side
 - Visual meshes for the robot had to be manually rotated to ensure proper visualization in simulation.
+- Required libraries are: numpy, matplotlib, osqp, dartpy
+- Runnable scripts are: main.py, plot.py
+- Press space bar to start the simulation
 
 ---
 
@@ -183,4 +151,4 @@ More details on tracking performance in presentation/material.zip
 
 ## 👥 Authors
 
-Vittorio Pisapia([VittorioPisapia](https://github.com/VittorioPisapia)), Jacopo Tedeschi([jacopotdsc](https://github.com/jacopotdsc)), Emiliano Paradiso([Emilianogith ](https://github.com/Emilianogith)), Brian Piccione([HatoKng](https://github.com/HatoKng))
+Vittorio Pisapia([VittorioPisapia](https://github.com/VittorioPisapia)), Jacopo Tedeschi([jacopotdsc](https://github.com/jacopotdsc)), Emiliano Paradiso([Emilianogith](https://github.com/Emilianogith)), Brian Piccione([HatoKng](https://github.com/HatoKng))
