@@ -146,6 +146,7 @@ This ensures smooth and accurate motion tracking during the swing phase.
 - [Di Carlo et al. (2018). *Dynamic Locomotion in the MIT Cheetah 3 Through Convex Model-Predictive Control*. IEEE/RSJ IROS, Madrid, Spain.](https://ieeexplore.ieee.org/document/8594448)
 - [Stark et al. (2025). *Benchmarking Different QP Formulations and Solvers for Dynamic Quadrupedal Walking*. arXiv:2502.01329v1 [cs.RO]](https://arxiv.org/abs/2502.01329)
 - [Zhu (GitHub). *Lite 3 URDF Configuration*. TopHillRobotics Repository](https://github.com/TopHillRobotics/quadruped-robot/blob/mpc-wbc/quadruped/config/lite3/lite3_robot.yaml)
+- [Reference for implementation: DIAG-Robotics-Lab/ismpc](https://github.com/DIAG-Robotics-Lab/ismpc)
 
 ---
 
